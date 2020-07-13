@@ -2,7 +2,7 @@ import torch
 import itertools
 
 
-class BaseConstraint():
+class BaseConstraint:
     def cond(self, value):
         raise NotImplementedError
 
