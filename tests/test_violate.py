@@ -1,7 +1,7 @@
 import torch.nn.functional as F
 
-from pytorch_constraints.constraint.brute_force_solver import ViolationPenalty
-from pytorch_constraints.constraint.constraint import constraint
+from pytorch_constraints.brute_force_solver import ViolationPenalty
+from pytorch_constraints.constraint import constraint
 
 from .conftest import train, xor
 
