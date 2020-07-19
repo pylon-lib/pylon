@@ -1,14 +1,15 @@
 import torch.nn.functional as F
 
-from pytorch_constraints.constraint.satisfaction_penalty import SatisfactionLambda
+from pytorch_constraints.constraint.brute_force_solver import SatisfactionPenalty
+from pytorch_constraints.constraint.constraint import constraint
 
 from .conftest import train, xor
 
 
 def test_satisfy(net, data):
-    constraint = SatisfactionLambda(xor)
+    cons = constraint(xor, SatisfactionPenalty())
 
-    net, _ = train(net, data, constraint)
+    net, _ = train(net, data, cons)
     x, _ = data
     y = F.softmax(net(x), dim=-1)
 

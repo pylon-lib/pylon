@@ -1,22 +1,21 @@
 import torch
 import itertools
 
+from .brute_force_solver import BruteForceSolver
+
 
 class BaseConstraint:
-    def cond(self, value):
-        raise NotImplementedError
+    def __init__(self, cond, solver=None):
+        self.cond = cond
+        self.solver = solver
+        self.solver.set_cond(cond)
 
-    def sample(self, probs):
-        yield from itertools.product(range(probs.shape[1]), repeat=probs.shape[0])
-
-    def loss(self, value, logit):
-        raise NotImplementedError
-
-    def reduce(self, losses):
-        return sum(losses)
+    def loss(self, logits):
+        return self.solver.loss(logits)
 
     def __call__(self, logits):
-        probs = torch.softmax(logits, dim=-1)
-        samples = self.sample(probs)
-        losses = map(lambda values: self.loss(values, logits), samples)
-        return self.reduce(losses)
+        return self.loss(logits)
+
+
+def constraint(cond, solver=BruteForceSolver()):
+    return BaseConstraint(cond, solver)

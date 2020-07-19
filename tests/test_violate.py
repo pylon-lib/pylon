@@ -1,14 +1,15 @@
 import torch.nn.functional as F
 
-from pytorch_constraints.constraint.violation_penalty import ViolationLambda
+from pytorch_constraints.constraint.brute_force_solver import ViolationPenalty
+from pytorch_constraints.constraint.constraint import constraint
 
 from .conftest import train, xor
 
 
 def test_violate(net, data):
-    constraint = ViolationLambda(xor)
+    cons = constraint(xor, ViolationPenalty())
 
-    net, _ = train(net, data, constraint)
+    net, _ = train(net, data, cons)
     x, _ = data
     y = F.softmax(net(x), dim=-1)
 
