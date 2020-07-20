@@ -1,7 +1,8 @@
 import torch
 import itertools
 
-from .solvers import Solver
+from .solver import Solver
+
 
 class BruteForceSolver(Solver):
 
@@ -9,9 +10,9 @@ class BruteForceSolver(Solver):
         yield from itertools.product(range(probs.shape[1]), repeat=probs.shape[0])
 
     def inst_loss(self, values, logits):
-            # sum of log prob
-            # prob -> logprob = (0,1] -> (-inf, 0]
-            #
+        # sum of log prob
+        # prob -> logprob = (0,1] -> (-inf, 0]
+        #
         log_probs = torch.log_softmax(logits, dim=-1)
         loss = 0
         for log_prob, value in zip(log_probs, values):
@@ -31,7 +32,7 @@ class BruteForceSolver(Solver):
         return self.reduce(losses)
 
 
-class SatisfactionPenalty(BruteForceSolver):
+class SatisfactionBruteForceSolver(BruteForceSolver):
     def filter(self, value):
         return self.cond(value)
 
@@ -40,7 +41,7 @@ class SatisfactionPenalty(BruteForceSolver):
         return -torch.stack(tuple(losses)).logsumexp(dim=0)
 
 
-class ViolationPenalty(BruteForceSolver):
+class ViolationBruteForceSolver(BruteForceSolver):
     def filter(self, value):
         return not self.cond(value)
 

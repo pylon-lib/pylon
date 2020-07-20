@@ -1,7 +1,7 @@
 import torch
 import itertools
 
-from .brute_force_solver import BruteForceSolver
+from .brute_force_solver import ViolationBruteForceSolver
 
 
 class BaseConstraint:
@@ -17,5 +17,5 @@ class BaseConstraint:
         return self.loss(logits)
 
 
-def constraint(cond, solver=BruteForceSolver()):
+def constraint(cond, solver=ViolationBruteForceSolver()):
     return BaseConstraint(cond, solver)
