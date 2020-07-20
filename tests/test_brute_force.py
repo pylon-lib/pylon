@@ -18,22 +18,26 @@ def test_default(net, data):
 
 
 def test_satisfy(net, data):
-    cons = constraint(xor, SatisfactionBruteForceSolver())
+    num_tries = 5  # since it's random
+    for i in range(num_tries):
+        cons = constraint(xor, SatisfactionBruteForceSolver())
 
-    net, _ = train(net, data, cons)
-    x, _ = data
-    y = F.softmax(net(x), dim=-1)
+        net, _ = train(net, data, cons)
+        x, _ = data
+        y = F.softmax(net(x), dim=-1)
 
-    assert y[0, 0] > 0.5 and y[0, 1] < 0.5
-    assert y[1, 0] < 0.5 and y[1, 1] > 0.5
+        assert y[0, 0] > 0.5 and y[0, 1] < 0.5
+        assert y[1, 0] < 0.5 and y[1, 1] > 0.5
 
 
 def test_violate(net, data):
-    cons = constraint(xor, ViolationBruteForceSolver())
+    num_tries = 5  # since it's random
+    for i in range(num_tries):
+        cons = constraint(xor, ViolationBruteForceSolver())
 
-    net, _ = train(net, data, cons)
-    x, _ = data
-    y = F.softmax(net(x), dim=-1)
+        net, _ = train(net, data, cons)
+        x, _ = data
+        y = F.softmax(net(x), dim=-1)
 
-    assert y[0, 0] > 0.5 and y[0, 1] < 0.5
-    assert y[1, 0] < 0.5 and y[1, 1] > 0.5
+        assert y[0, 0] > 0.5 and y[0, 1] < 0.5
+        assert y[1, 0] < 0.5 and y[1, 1] > 0.5
