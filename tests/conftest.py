@@ -4,6 +4,8 @@ import torch.nn.functional as F
 
 
 class Net(torch.nn.Module):
+    '''Neural network with a single input (fixed) and two binary outputs.'''
+
     def __init__(self, w=None):
         super().__init__()
         if w is not None:
@@ -44,6 +46,7 @@ def net():
 
 @pytest.fixture
 def data():
+    '''Set input and one of the outputs to be 1.'''
     x = torch.tensor([1.0])
     y = torch.tensor([0, 1])
     return x, y

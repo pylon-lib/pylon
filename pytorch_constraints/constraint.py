@@ -14,8 +14,10 @@ class BaseConstraint:
         return self.solver.loss(logits)
 
     def __call__(self, logits):
+        '''Return the differentiable loss for the constraint given the logits of the variables.'''
         return self.loss(logits)
 
 
 def constraint(cond, solver=ViolationBruteForceSolver()):
+    '''Create a constraint for a given boolean condition.'''
     return BaseConstraint(cond, solver)
