@@ -2,6 +2,7 @@ import torch
 import itertools
 
 from .solver import Solver
+from .utils import decoding_loss
 
 
 class BruteForceSolver(Solver):
@@ -10,17 +11,6 @@ class BruteForceSolver(Solver):
     def all_samples(self, probs):
         '''All possible decodings from the `probs` Tensor.'''
         yield from itertools.product(range(probs.shape[1]), repeat=probs.shape[0])
-
-    def inst_loss(self, values, logits):
-        '''Loss for a single decoded value of the variables.'''
-        # sum of log prob
-        # prob -> logprob = (0,1] -> (-inf, 0]
-        #
-        log_probs = torch.log_softmax(logits, dim=-1)
-        loss = 0
-        for log_prob, value in zip(log_probs, values):
-            loss += log_prob[value]
-        return loss
 
     def filter(self, value):
         '''Which variable values should we compute the loss over.'''
@@ -31,9 +21,9 @@ class BruteForceSolver(Solver):
         return sum(losses)
 
     def loss(self, logits):
-        probs = torch.softmax(logits, dim=-1)
-        samples = filter(self.filter, self.all_samples(probs))
-        losses = map(lambda values: self.inst_loss(values, logits), samples)
+        log_probs = torch.log_softmax(logits, dim=-1)
+        samples = filter(self.filter, self.all_samples(logits))
+        losses = map(lambda values: decoding_loss(values, log_probs), samples)
         return self.reduce(losses)
 
 
