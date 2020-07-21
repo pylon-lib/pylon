@@ -25,11 +25,17 @@ class SamplingSolver(Solver):
     def loss(self, logits):
         log_probs = torch.log_softmax(logits, dim=-1)
         samples = [self.sample(logits) for s in range(self.num_samples)]
-        print(samples)
+
         pos_losses = map(lambda sample: decoding_loss(sample, log_probs),
                          filter(self.cond, samples))
-        pos_loss = torch.stack(tuple(pos_losses)).logsumexp(dim=0)
+        pos_losses = tuple(pos_losses)
+        pos_loss = torch.stack(tuple(pos_losses)).logsumexp(dim=0)\
+                if pos_losses else 0
+
         neg_losses = map(lambda sample: decoding_loss(sample, log_probs),
                          filter(lambda v: not self.cond(v), samples))
-        neg_loss = torch.stack(tuple(neg_losses)).logsumexp(dim=0)
+        neg_losses = tuple(neg_losses)
+        neg_loss = torch.stack(tuple(neg_losses)).logsumexp(dim=0)\
+                if neg_losses else 0
+
         return neg_loss - pos_loss
