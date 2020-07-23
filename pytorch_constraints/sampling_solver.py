@@ -24,7 +24,7 @@ class SamplingSolver(Solver):
 
     def loss(self, logits):
         log_probs = torch.log_softmax(logits, dim=-1)
-        samples = set([self.sample(logits) for s in range(self.num_samples)])
+        samples = [self.sample(logits) for s in range(self.num_samples)]
 
         satis_losses = map(lambda sample: decoding_loss(sample, log_probs),
                          filter(self.cond, samples))
