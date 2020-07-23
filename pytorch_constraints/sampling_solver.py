@@ -24,18 +24,21 @@ class SamplingSolver(Solver):
 
     def loss(self, logits):
         log_probs = torch.log_softmax(logits, dim=-1)
-        samples = [self.sample(logits) for s in range(self.num_samples)]
+        samples = set([self.sample(logits) for s in range(self.num_samples)])
 
-        pos_losses = map(lambda sample: decoding_loss(sample, log_probs),
+        satis_losses = map(lambda sample: decoding_loss(sample, log_probs),
                          filter(self.cond, samples))
-        pos_losses = tuple(pos_losses)
-        pos_loss = torch.stack(tuple(pos_losses)).logsumexp(dim=0)\
-                if pos_losses else 0
+        satis_losses = tuple(satis_losses)
+        satis_loss = torch.stack(tuple(satis_losses)).logsumexp(dim=0)\
+                if satis_losses else 0
 
-        neg_losses = map(lambda sample: decoding_loss(sample, log_probs),
+        viol_losses = map(lambda sample: decoding_loss(sample, log_probs),
                          filter(lambda v: not self.cond(v), samples))
-        neg_losses = tuple(neg_losses)
-        neg_loss = torch.stack(tuple(neg_losses)).logsumexp(dim=0)\
-                if neg_losses else 0
+        viol_losses = tuple(viol_losses)
+        viol_loss = torch.stack(tuple(viol_losses)).logsumexp(dim=0)\
+                if viol_losses else 0
 
-        return neg_loss - pos_loss
+        log_prob_satis = satis_loss - torch.logsumexp(satis_loss, viol_loss)
+        log_prob_viol = viol_loss - torch.logsumexp(satis_loss, viol_loss)
+        # -log_prob_satis
+        return viol_loss - satis_loss
