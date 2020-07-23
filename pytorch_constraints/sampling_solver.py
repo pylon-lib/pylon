@@ -38,7 +38,7 @@ class SamplingSolver(Solver):
         viol_loss = torch.stack(tuple(viol_losses)).logsumexp(dim=0)\
                 if viol_losses else 0
 
-        log_prob_satis = satis_loss - torch.logsumexp(satis_loss, viol_loss)
-        log_prob_viol = viol_loss - torch.logsumexp(satis_loss, viol_loss)
+        # log_prob_satis = satis_loss - torch.logsumexp(satis_loss, viol_loss)
+        # log_prob_viol = viol_loss - torch.logsumexp(satis_loss, viol_loss)
         # -log_prob_satis
         return viol_loss - satis_loss
