@@ -16,6 +16,7 @@ class Net(torch.nn.Module):
     def forward(self, x):
         return torch.matmul(self.w, x).view(2, 2)
 
+
 class NER_Net(torch.nn.Module):
     '''Simple Named Entity Recognition model'''
 
@@ -49,7 +50,8 @@ class RE_Net(NER_Net):
     def __init__(self, vocab_size, num_classes, hidden_dim=50, embedding_dim=300):
         super().__init__(vocab_size, num_classes, hidden_dim, embedding_dim)
 
-        self.lstm = torch.nn.LSTM(self.embedding_dim, self.hidden_dim, num_layers=2, batch_first=True, dropout=0.7, bidirectional=True)
+        self.lstm = torch.nn.LSTM(self.embedding_dim, self.hidden_dim, num_layers=2,
+                                  batch_first=True, dropout=0.7, bidirectional=True)
 
 
 def xor(y):

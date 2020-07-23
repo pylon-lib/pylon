@@ -1,5 +1,6 @@
 import torch
 
+
 def decoding_loss(values, log_probs):
     '''Loss for a single decoded value of the variables.'''
     # sum of log prob

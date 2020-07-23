@@ -27,16 +27,16 @@ class SamplingSolver(Solver):
         samples = [self.sample(logits) for s in range(self.num_samples)]
 
         satis_losses = map(lambda sample: decoding_loss(sample, log_probs),
-                         filter(self.cond, samples))
+                           filter(self.cond, samples))
         satis_losses = tuple(satis_losses)
         satis_loss = torch.stack(tuple(satis_losses)).logsumexp(dim=0)\
-                if satis_losses else 0
+            if satis_losses else 0
 
         viol_losses = map(lambda sample: decoding_loss(sample, log_probs),
-                         filter(lambda v: not self.cond(v), samples))
+                          filter(lambda v: not self.cond(v), samples))
         viol_losses = tuple(viol_losses)
         viol_loss = torch.stack(tuple(viol_losses)).logsumexp(dim=0)\
-                if viol_losses else 0
+            if viol_losses else 0
 
         # log_prob_satis = satis_loss - torch.logsumexp(satis_loss, viol_loss)
         # log_prob_viol = viol_loss - torch.logsumexp(satis_loss, viol_loss)
