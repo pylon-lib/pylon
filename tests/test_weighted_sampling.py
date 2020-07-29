@@ -6,7 +6,7 @@ from pytorch_constraints.constraint import constraint
 from .conftest import train, xor
 
 
-def test_sampling(net, data):
+def test_weighted_sampling(net, data):
     num_samples = 100
     num_tries = 10  # since it's random
     success = 0
