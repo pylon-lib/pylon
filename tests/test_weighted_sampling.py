@@ -1,6 +1,6 @@
 import torch.nn.functional as F
 
-from pytorch_constraints.weighted_sampling_solver import *
+from pytorch_constraints.sampling_solver import *
 from pytorch_constraints.constraint import constraint
 
 from .conftest import train, xor
