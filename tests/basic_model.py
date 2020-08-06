@@ -4,21 +4,26 @@ import torch.nn.functional as F
 
 
 class Net(torch.nn.Module):
-    '''Neural network with a single input (fixed) and two binary outputs.'''
+    '''Neural network with a single input (fixed) and two categorical outputs.'''
 
-    def __init__(self, w=None):
+    def __init__(self, num_labels, w=None):
         super().__init__()
+        self.num_labels = num_labels
         if w is not None:
-            self.w = torch.nn.Parameter(torch.tensor(w).float().view(4, 1))
+            self.w = torch.nn.Parameter(
+                torch.tensor(w).float().view(
+                    self.num_labels*2, 1))
         else:
-            self.w = torch.nn.Parameter(torch.rand(4, 1))
+            self.w = torch.nn.Parameter(
+                torch.rand(self.num_labels*2, 1))
 
     def forward(self, x):
-        return torch.matmul(self.w, x).view(2, 2)
+        return torch.matmul(self.w, x).view(2, self.num_labels)
 
 
-def train(net, data, constraint=None, epoch=100):
-    x, y = data
+def train(net, constraint=None, epoch=100):
+    x = torch.tensor([1.0])
+    y = torch.tensor([0, 1])
     y0 = F.softmax(net(x), dim=-1)
     opt = torch.optim.SGD(net.parameters(), lr=0.1)
 
@@ -35,14 +40,12 @@ def train(net, data, constraint=None, epoch=100):
 
 
 @pytest.fixture
-def net():
-    net = Net()
+def net_binary():
+    net = Net(2)
     return net
 
 
 @pytest.fixture
-def data():
-    '''Set input and one of the outputs to be 1.'''
-    x = torch.tensor([1.0])
-    y = torch.tensor([0, 1])
-    return x, y
+def net_multi():
+    net = Net(3)
+    return net
