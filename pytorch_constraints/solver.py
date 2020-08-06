@@ -24,7 +24,7 @@ class ASTSolver(Solver):
 
     def set_cond(self, cond):
         super().set_cond(cond)
-        astree = ast.parse(inspect.getsource(cond))
+        astree = ast.parse(inspect.getsource(cond).strip())
         self.visit_ast(
             self.find_function_def(astree))
 
