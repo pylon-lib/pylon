@@ -59,6 +59,31 @@ def test_xor_binary(net_binary):
         assert success == num_tries
 
 
+def test_xor_multi(net_multi):
+    num_samples = 20
+    solvers = [
+        SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
+        SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
+        TNormLogicSolver()
+    ]  # SemanticSolver(),
+    for solver in solvers:
+        print("Testing", type(solver).__name__)
+        num_tries = 5  # since it's random
+        success = 0
+        for i in range(num_tries):
+            cons = constraint(xor, solver)
+
+            net, y0 = train(net_multi, cons)
+            x = torch.tensor([1.0])
+            y = F.softmax(net(x), dim=-1)
+            print(y)
+            if y[0, 0] > 0.6 and y[0, 1] < 0.2 and y[0, 2] < 0.2:
+                success += 1
+            assert y[1, 0] < 0.2 and y[1, 1] > 0.6 and y[1, 2] < 0.2
+
+        assert success == num_tries
+
+
 def test_eq_multi(net_multi):
     num_samples = 20
     solvers = [
