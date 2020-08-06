@@ -34,7 +34,7 @@ class TreeNode:
     def as_bool(self):
         return self
 
-    def tnorm(self, probs):
+    def prod_tnorm(self, probs):
         print(self)
         raise NotImplementedError
 
@@ -54,9 +54,9 @@ class And(BinaryOp):
     def __init__(self, left, right):
         super().__init__("And", left, right)
 
-    def tnorm(self, probs):
-        lv = self.left.tnorm(probs)
-        rv = self.right.tnorm(probs)
+    def prod_tnorm(self, probs):
+        lv = self.left.prod_tnorm(probs)
+        rv = self.right.prod_tnorm(probs)
         return lv * rv
 
 
@@ -64,9 +64,9 @@ class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
 
-    def tnorm(self, probs):
-        lv = self.left.tnorm(probs)
-        rv = self.right.tnorm(probs)
+    def prod_tnorm(self, probs):
+        lv = self.left.prod_tnorm(probs)
+        rv = self.right.prod_tnorm(probs)
         return lv + rv - lv * rv
 
 
@@ -80,15 +80,15 @@ class Not(UnaryOp):
     def __init__(self, operand):
         super().__init__("Not", operand)
 
-    def tnorm(self, probs):
-        return 1.0 - self.operand.tnorm(probs)
+    def prod_tnorm(self, probs):
+        return 1.0 - self.operand.prod_tnorm(probs)
 
 
 class IsEq(BinaryOp):
     def __init__(self, left, right):
         super().__init__('Eq', left, right)
 
-    def tnorm(self, probs):
+    def prod_tnorm(self, probs):
         if isinstance(self.left, VarUse) and isinstance(self.right, Const):
             return probs[self.left.index][self.right.value]
         elif isinstance(self.left, Const) and isinstance(self.right, VarUse):
@@ -110,7 +110,7 @@ class Const(TreeNode):
     def as_bool(self):
         return self if self.is_bool else Const(bool(self.value))
 
-    def tnorm(self, probs):
+    def prod_tnorm(self, probs):
         return 1.0 if self.value == self.value else 0.0
 
 
