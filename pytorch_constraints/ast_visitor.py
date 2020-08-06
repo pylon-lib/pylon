@@ -140,7 +140,7 @@ class LogicExpressionVisitor(ast.NodeVisitor):
     def visit_Lambda(self, node):
         # Same as FunctionDef?
         body_tree = self.visit(node.body)
-        return body_tree
+        return body_tree.as_bool()
 
     def visit_Return(self, node):
         return self.visit(node.value).as_bool()
