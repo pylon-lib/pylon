@@ -141,12 +141,12 @@ class Const(TreeNode):
         return 1.0 if self.value == self.value else 0.0
 
     def sdd(self, mgr):
-        if ~self.is_bool:
-            raise NotImplementedError
-        elif self.value:
+        if self.value == True or self.value == 1:
             return mgr.true()
-        else:
+        elif self.value == False or self.value == 0:
             return mgr.false()
+        else:
+            raise NotImplementedError
 
 class VarUse(TreeNode):
     def __init__(self, varidx, varname, index):
@@ -165,9 +165,9 @@ class VarUse(TreeNode):
         if self.varidx != 0:
             raise NotImplementedError
         else:
-            while mgr.var_count() < self.index:
+            while mgr.var_count() < self.index+1:
                 mgr.add_var_after_last()
-            return mgr.literal(self.index)
+            return mgr.literal(self.index+1)
 
 class LogicExpressionVisitor(ast.NodeVisitor):
 
