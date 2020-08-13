@@ -10,12 +10,12 @@ class BaseConstraint:
         self.solver = solver
         self.solver.set_cond(cond)
 
-    def loss(self, logits):
-        return self.solver.loss(logits)
+    def loss(self, *logits):
+        return self.solver.loss(*logits)
 
-    def __call__(self, logits):
+    def __call__(self, *logits):
         '''Return the differentiable loss for the constraint given the logits of the variables.'''
-        return self.loss(logits)
+        return self.loss(*logits)
 
 
 def constraint(cond, solver=ViolationBruteForceSolver()):
