@@ -35,7 +35,8 @@ def test_xor_binary(net_binary):
     solvers = [
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
-        SemanticSolver(), ProductTNormLogicSolver()
+        # SemanticSolver(),
+        ProductTNormLogicSolver()
     ]
     for solver in solvers:
         num_tries = 5  # since it's random
@@ -84,7 +85,8 @@ def test_eq_multi(net_multi):
     solvers = [
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
-        SemanticSolver(), ProductTNormLogicSolver()
+        # SemanticSolver(),
+        ProductTNormLogicSolver()
     ]
     for solver in solvers:
         print("Testing", type(solver).__name__)
@@ -109,7 +111,8 @@ def test_neq_multi(net_multi):
     solvers = [
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
-        SemanticSolver(), ProductTNormLogicSolver()
+        # SemanticSolver(),
+        ProductTNormLogicSolver()
     ]
     for solver in solvers:
         print("Testing", type(solver).__name__)

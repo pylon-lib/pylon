@@ -10,13 +10,18 @@ def parse_object(obj):
     return ast.parse(source)
 
 
-def true(): return True
-def false(): return False
-def const0(): return 0
-def const1(): return 1
-def equals1_2(): return 1 == 2
-def y_eq_const(): return y[0] == 0
-def y0(): return y[0]
+def true(y): return True
+def false(y): return False
+def const0(y): return 0
+def const1(y): return 1
+def equals1_2(y): return 1 == 2
+def y_eq_const(y): return y[0] == 0
+def const_eq_y(y): return 0 == y[0]
+def var_eq_var(y): return y[0] == y[1]
+def y0(y): return y[0]
+
+
+def two_vars(x, y): return x[0] == y[1]
 
 
 @pytest.fixture
@@ -27,16 +32,20 @@ def parses():
         (const0, Const(False)),
         (const1, Const(True)),
         (equals1_2, IsEq(Const(1), Const(2))),
-        (y_eq_const, IsEq(VarUse(0), Const(0))),
-        (y0, Not(IsEq(VarUse(0), Const(0))))
+        (y_eq_const, IsEq(VarUse(0, 'y', 0), Const(0))),
+        (const_eq_y, IsEq(Const(0), VarUse(0, 'y', 0))),
+        (var_eq_var, IsEq(VarUse(0, 'y', 0), VarUse(0, 'y', 1))),
+        (y0, Not(IsEq(VarUse(0, 'y', 0), Const(0)))),
+        (two_vars, IsEq(VarUse(0, 'x', 0), VarUse(1, 'y', 1)))
     ]
 
 
 def test_parses(parses):
     finder = FunDefFindingVisitor()
-    parser = LogicExpressionVisitor()
     for (f, tree) in parses:
         astree = parse_object(f)
-        ptree = parser.visit(finder.visit(astree))
+        fundef, arg_pos = finder.visit(astree)
+        parser = LogicExpressionVisitor(arg_pos)
+        ptree = parser.visit(fundef)
         print(ptree)
         assert ptree == tree

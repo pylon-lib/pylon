@@ -1,9 +1,17 @@
 import ast
+from functools import reduce
 
 
 class FunDefFindingVisitor(ast.NodeVisitor):
     def __init__(self):
         super(ast.NodeVisitor).__init__()
+
+    def get_arg_pos(self, node):
+        arg_pos = {}
+        for i, arg in enumerate(node.args.args):
+            arg_pos[arg.arg] = i
+        print(arg_pos)
+        return arg_pos
 
     def visit_Module(self, node):
         return self.visit(node.body[0])
@@ -16,10 +24,10 @@ class FunDefFindingVisitor(ast.NodeVisitor):
         return self.visit(node.args[0])
 
     def visit_Lambda(self, node):
-        return node
+        return node, self.get_arg_pos(node)
 
     def visit_FunctionDef(self, node):
-        return node
+        return node, self.get_arg_pos(node)
 
 
 class TreeNode:
@@ -90,13 +98,13 @@ class IsEq(BinaryOp):
 
     def prod_tnorm(self, probs):
         if isinstance(self.left, VarUse) and isinstance(self.right, Const):
-            return probs[self.left.index][self.right.value]
+            return self.left.probs(probs)[self.right.value]
         elif isinstance(self.left, Const) and isinstance(self.right, VarUse):
-            return probs[self.left.index][self.right.value]
+            return self.right.probs(probs)[self.left.value]
         elif isinstance(self.left, Const) and isinstance(self.right, Const):
             return 1.0 if self.left.value == self.right.value else 0.0
         elif isinstance(self.left, VarUse) and isinstance(self.right, VarUse):
-            return (probs[self.left.index, :]*probs[self.right.index, :]).sum()
+            return (self.left.probs(probs)*self.right.probs(probs)).sum()
         else:
             raise NotImplementedError
 
@@ -115,9 +123,14 @@ class Const(TreeNode):
 
 
 class VarUse(TreeNode):
-    def __init__(self, index):
+    def __init__(self, varidx, varname, index):
+        self.varidx = varidx
+        self.varname = varname
         self.index = index
-        super().__init__('y[' + str(self.index) + "]", [])
+        super().__init__(self.varname + '[' + str(self.index) + "]", [])
+
+    def probs(self, probs):
+        return probs[self.varidx][self.index]
 
     def as_bool(self):
         return Not(IsEq(self, Const(0)))
@@ -125,7 +138,8 @@ class VarUse(TreeNode):
 
 class LogicExpressionVisitor(ast.NodeVisitor):
 
-    def __init__(self):
+    def __init__(self, arg_pos):
+        self.arg_pos = arg_pos
         super(ast.NodeVisitor).__init__()
 
     def generic_visit(self, node):
@@ -155,7 +169,8 @@ class LogicExpressionVisitor(ast.NodeVisitor):
 
     def visit_Subscript(self, node):
         # TODO check node.value is the variable?
-        return VarUse(node.slice.value.n)
+        varidx = self.arg_pos[node.value.id]
+        return VarUse(varidx, node.value.id, node.slice.value.n)
 
     def visit_NameConstant(self, node):
         #deprecated in 3.8
@@ -174,9 +189,8 @@ class LogicExpressionVisitor(ast.NodeVisitor):
             ast.Or: (lambda left, right: Or(left.as_bool(), right.as_bool()))
         }
         op_func = supported[type(node.op)]
-        ltree = self.visit(node.values[0])
-        rtree = self.visit(node.values[1])
-        return op_func(ltree, rtree)
+        trees = map(self.visit, node.values)
+        return reduce(op_func, trees)
 
     def visit_Compare(self, node):
         supported = {
