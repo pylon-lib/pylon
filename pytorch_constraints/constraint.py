@@ -1,7 +1,7 @@
 import torch
 import itertools
 
-from .brute_force_solver import ViolationBruteForceSolver
+from .brute_force_solver import SatisfactionBruteForceSolver
 
 
 class BaseConstraint:
@@ -18,6 +18,6 @@ class BaseConstraint:
         return self.loss(*logits)
 
 
-def constraint(cond, solver=ViolationBruteForceSolver()):
+def constraint(cond, solver=SatisfactionBruteForceSolver()):
     '''Create a constraint for a given boolean condition.'''
     return BaseConstraint(cond, solver)
