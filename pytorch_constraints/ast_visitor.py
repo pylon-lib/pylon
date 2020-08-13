@@ -46,6 +46,10 @@ class TreeNode:
         print(self)
         raise NotImplementedError
 
+    def sdd(self, mgr):
+        print(self)
+        raise NotImplementedError
+
     def __eq__(self, obj):
         return (type(obj) == type(self) and
                 self.name == obj.name and self.children == obj.children)
@@ -67,6 +71,11 @@ class And(BinaryOp):
         rv = self.right.prod_tnorm(probs)
         return lv * rv
 
+    def sdd(self, mgr):
+        l = self.left.sdd()
+        r = self.right.sdd()
+        return l & r 
+
 
 class Or(BinaryOp):
     def __init__(self, left, right):
@@ -76,6 +85,11 @@ class Or(BinaryOp):
         lv = self.left.prod_tnorm(probs)
         rv = self.right.prod_tnorm(probs)
         return lv + rv - lv * rv
+
+    def sdd(self, mgr):
+        l = self.left.sdd()
+        r = self.right.sdd()
+        return l | r 
 
 
 class UnaryOp(TreeNode):
@@ -90,6 +104,9 @@ class Not(UnaryOp):
 
     def prod_tnorm(self, probs):
         return 1.0 - self.operand.prod_tnorm(probs)
+
+    def sdd(self, mgr):
+        return ~self.operand.sdd()
 
 
 class IsEq(BinaryOp):
@@ -108,6 +125,8 @@ class IsEq(BinaryOp):
         else:
             raise NotImplementedError
 
+    def sdd(self, mgr):
+        return self.left.sdd(mgr).equiv(self.right.sdd(mgr))
 
 class Const(TreeNode):
     def __init__(self, value):
@@ -121,6 +140,13 @@ class Const(TreeNode):
     def prod_tnorm(self, probs):
         return 1.0 if self.value == self.value else 0.0
 
+    def sdd(self, mgr):
+        if ~self.is_bool:
+            raise NotImplementedError
+        elif self.value:
+            return mgr.true()
+        else:
+            return mgr.false()
 
 class VarUse(TreeNode):
     def __init__(self, varidx, varname, index):
@@ -135,6 +161,13 @@ class VarUse(TreeNode):
     def as_bool(self):
         return Not(IsEq(self, Const(0)))
 
+    def sdd(self, mgr):
+        if self.varidx != 0:
+            raise NotImplementedError
+        else:
+            while mgr.var_count() < self.index:
+                mgr.add_var_after_last()
+            return mgr.literal(self.index)
 
 class LogicExpressionVisitor(ast.NodeVisitor):
 

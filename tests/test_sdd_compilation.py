@@ -1,0 +1,34 @@
+import pytest
+import ast
+import inspect
+
+from pytorch_constraints.ast_visitor import *
+from pysdd.sdd import SddManager, Vtree, WmcManager
+
+def parse_object(obj):
+    finder = FunDefFindingVisitor()
+    source = inspect.getsource(obj)
+    astree = ast.parse(source)
+    fundef, arg_pos = finder.visit(astree)
+    parser = LogicExpressionVisitor(arg_pos)
+    return parser.visit(fundef)
+    
+def compile(obj):
+    ptree = parse_object(obj)
+    vtree = Vtree(var_count=1)
+    mgr = SddManager.from_vtree(vtree)
+    ptree.sdd(mgr)
+
+def true(y): return True
+def false(y): return False
+def const0(y): return 0
+def const1(y): return 1
+def equals1_2(y): return 1 == 2
+def y_eq_const(y): return y[0] == 0
+def const_eq_y(y): return 0 == y[0]
+def var_eq_var(y): return y[0] == y[1]
+def y0(y): return y[0]
+
+# def test_true():
+#     compile(true)
+#     pass
