@@ -24,6 +24,11 @@ def y0(y): return y[0]
 def two_vars(x, y): return x[0] == y[1]
 
 
+def two_vars_assign(x, y):
+    v = x[0] == y[1]
+    return v
+
+
 @pytest.fixture
 def parses():
     return [
@@ -44,8 +49,8 @@ def test_parses(parses):
     finder = FunDefFindingVisitor()
     for (f, tree) in parses:
         astree = parse_object(f)
-        fundef, arg_pos = finder.visit(astree)
-        parser = LogicExpressionVisitor(arg_pos)
+        fundef = finder.visit(astree)
+        parser = LogicExpressionVisitor()
         ptree = parser.visit(fundef)
         print(ptree)
-        assert ptree == tree
+        assert ptree.return_node == tree

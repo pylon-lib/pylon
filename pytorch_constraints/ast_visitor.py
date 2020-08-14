@@ -6,13 +6,6 @@ class FunDefFindingVisitor(ast.NodeVisitor):
     def __init__(self):
         super(ast.NodeVisitor).__init__()
 
-    def get_arg_pos(self, node):
-        arg_pos = {}
-        for i, arg in enumerate(node.args.args):
-            arg_pos[arg.arg] = i
-        print(arg_pos)
-        return arg_pos
-
     def visit_Module(self, node):
         return self.visit(node.body[0])
 
@@ -24,10 +17,10 @@ class FunDefFindingVisitor(ast.NodeVisitor):
         return self.visit(node.args[0])
 
     def visit_Lambda(self, node):
-        return node, self.get_arg_pos(node)
+        return node
 
     def visit_FunctionDef(self, node):
-        return node, self.get_arg_pos(node)
+        return node
 
 
 class TreeNode:
@@ -74,7 +67,7 @@ class And(BinaryOp):
     def sdd(self, mgr):
         l = self.left.sdd()
         r = self.right.sdd()
-        return l & r 
+        return l & r
 
 
 class Or(BinaryOp):
@@ -89,7 +82,7 @@ class Or(BinaryOp):
     def sdd(self, mgr):
         l = self.left.sdd()
         r = self.right.sdd()
-        return l | r 
+        return l | r
 
 
 class UnaryOp(TreeNode):
@@ -128,6 +121,7 @@ class IsEq(BinaryOp):
     def sdd(self, mgr):
         return self.left.sdd(mgr).equiv(self.right.sdd(mgr))
 
+
 class Const(TreeNode):
     def __init__(self, value):
         self.value = value
@@ -138,7 +132,7 @@ class Const(TreeNode):
         return self if self.is_bool else Const(bool(self.value))
 
     def prod_tnorm(self, probs):
-        return 1.0 if self.value == self.value else 0.0
+        return 1.0 if self.value else 0.0
 
     def sdd(self, mgr):
         if self.value == True or self.value == 1:
@@ -147,6 +141,7 @@ class Const(TreeNode):
             return mgr.false()
         else:
             raise NotImplementedError
+
 
 class VarUse(TreeNode):
     def __init__(self, varidx, varname, index):
@@ -169,25 +164,68 @@ class VarUse(TreeNode):
                 mgr.add_var_after_last()
             return mgr.literal(self.index+1)
 
+
+class IdentifierDef(TreeNode):
+    def __init__(self, id, definition):
+        self.id = id
+        self.definition = definition
+        super().__init__('{def ' + self.id + '=' + str(self.definition) + "}", [])
+
+
+class IdentifierRef(TreeNode):
+    def __init__(self, iddef):
+        self.iddef = iddef
+        super().__init__('{'+self.iddef.id+'}', [])
+
+    def prod_tnorm(self, probs):
+        return self.iddef.definition.prod_tnorm(probs)
+
+
+class FunDef(TreeNode):
+    def __init__(self, arg_pos, iddefs, return_node):
+        self.arg_pos = arg_pos
+        self.iddefs = iddefs
+        self.return_node = return_node
+        super().__init__(
+            'lambda {0}: {1}; return {2}'.format(
+                ','.join(self.arg_pos.keys()),
+                ';'.join([str(v) for v in self.iddefs.values()]),
+                self.return_node), [])
+
+    def prod_tnorm(self, probs):
+        return self.return_node.prod_tnorm(probs)
+
+    def sdd(self, mgr):
+        return self.return_node.sdd(mgr)
+
+
 class LogicExpressionVisitor(ast.NodeVisitor):
 
-    def __init__(self, arg_pos):
-        self.arg_pos = arg_pos
+    def __init__(self):
+        self.arg_pos = {}
+        self.iddefs = {}
         super(ast.NodeVisitor).__init__()
 
     def generic_visit(self, node):
         print(ast.dump(node))
         raise NotImplementedError
 
+    def get_arg_pos(self, node):
+        arg_pos = {}
+        for i, arg in enumerate(node.args.args):
+            arg_pos[arg.arg] = i
+        return arg_pos
+
     def visit_FunctionDef(self, node):
-        # TODO: handle multiple lines, and do something with arguments?
-        body_tree = self.visit(node.body[0])
-        return body_tree
+        self.arg_pos = self.get_arg_pos(node)
+        for b in node.body:
+            body_tree = self.visit(b)
+        return FunDef(self.arg_pos, self.iddefs, body_tree.as_bool())
 
     def visit_Lambda(self, node):
-        # Same as FunctionDef?
+        self.arg_pos = self.get_arg_pos(node)
         body_tree = self.visit(node.body)
-        return body_tree.as_bool()
+        return FunDef(self.arg_pos, self.iddefs, body_tree.as_bool())
 
     def visit_Return(self, node):
         return self.visit(node.value).as_bool()
@@ -204,6 +242,20 @@ class LogicExpressionVisitor(ast.NodeVisitor):
         # TODO check node.value is the variable?
         varidx = self.arg_pos[node.value.id]
         return VarUse(varidx, node.value.id, node.slice.value.n)
+
+    def visit_Assign(self, node):
+        assert len(node.targets) == 1
+        id = node.targets[0].id
+        definition = self.visit(node.value)
+        iddef = IdentifierDef(id, definition)
+        assert id not in self.iddefs
+        self.iddefs[id] = iddef
+        return iddef
+
+    def visit_Name(self, node):
+        # assumes unscripted reference is to local variable
+        iddef = self.iddefs[node.id]
+        return IdentifierRef(iddef)
 
     def visit_NameConstant(self, node):
         #deprecated in 3.8

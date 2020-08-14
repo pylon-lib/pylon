@@ -25,22 +25,22 @@ class ASTSolver(Solver):
     def set_cond(self, cond):
         super().set_cond(cond)
         astree = ast.parse(inspect.getsource(cond).strip())
-        fundef, arg_pos = self.find_function_def(astree)
-        self.visit_ast(fundef, arg_pos)
+        fundef = self.find_function_def(astree)
+        self.visit_ast(fundef)
 
     def find_function_def(self, astree):
         '''Find the appropriate node in the AST.'''
         visitor = FunDefFindingVisitor()
         return visitor.visit(astree)
 
-    def visit_ast(self, astree, arg_pos):
+    def visit_ast(self, astree):
         '''Visit the AST once, to perform any computations.'''
         raise NotImplementedError
 
 
 class ASTLogicSolver(ASTSolver):
 
-    def visit_ast(self, astree, arg_pos):
-        self.visitor = LogicExpressionVisitor(arg_pos)
+    def visit_ast(self, astree):
+        self.visitor = LogicExpressionVisitor()
         self.bool_tree = self.visitor.visit(astree)
         print(self.bool_tree)
