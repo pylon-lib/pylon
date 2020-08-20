@@ -1,5 +1,6 @@
 import ast
 from functools import reduce
+import torch
 
 
 class FunDefFindingVisitor(ast.NodeVisitor):
@@ -39,6 +40,14 @@ class TreeNode:
         print(self)
         raise NotImplementedError
 
+    def lukasiewicz_tnorm(self, probs):
+        print(self)
+        raise NotImplementedError
+
+    def godel_tnorm(self, probs):
+        print(self)
+        raise NotImplementedError
+
     def sdd(self, mgr):
         print(self)
         raise NotImplementedError
@@ -64,6 +73,16 @@ class And(BinaryOp):
         rv = self.right.prod_tnorm(probs)
         return lv * rv
 
+    def lukasiewicz_tnorm(self, probs):
+        lv = self.left.lukasiewicz_tnorm(probs)
+        rv = self.right.lukasiewicz_tnorm(probs)
+        return torch.relu(lv + rv - 1)
+
+    def godel_tnorm(self, probs):
+        lv = self.left.lukasiewicz_tnorm(probs)
+        rv = self.right.lukasiewicz_tnorm(probs)
+        return torch.min(lv, rv)
+
     def sdd(self, mgr):
         l = self.left.sdd()
         r = self.right.sdd()
@@ -78,6 +97,17 @@ class Or(BinaryOp):
         lv = self.left.prod_tnorm(probs)
         rv = self.right.prod_tnorm(probs)
         return lv + rv - lv * rv
+
+    def lukasiewicz_tnorm(self, probs):
+        lv = self.left.lukasiewicz_tnorm(probs)
+        rv = self.right.lukasiewicz_tnorm(probs)
+        # min(1,x) = 1-max(0,1-x)
+        return 1 - torch.relu(1 - lv - rv)
+
+    def godel_tnorm(self, probs):
+        lv = self.left.lukasiewicz_tnorm(probs)
+        rv = self.right.lukasiewicz_tnorm(probs)
+        return torch.max(lv, rv)
 
     def sdd(self, mgr):
         l = self.left.sdd()
@@ -97,6 +127,12 @@ class Not(UnaryOp):
 
     def prod_tnorm(self, probs):
         return 1.0 - self.operand.prod_tnorm(probs)
+
+    def lukasiewicz_tnorm(self, probs):
+        return 1.0 - self.operand.lukasiewicz_tnorm(probs)
+
+    def godel_tnorm(self, probs):
+        return 1.0 - self.operand.godel_tnorm(probs)
 
     def sdd(self, mgr):
         return ~self.operand.sdd()
@@ -118,6 +154,12 @@ class IsEq(BinaryOp):
         else:
             raise NotImplementedError
 
+    def lukasiewicz_tnorm(self, probs):
+        return self.prod_tnorm(probs)
+
+    def godel_tnorm(self, probs):
+        return self.prod_tnorm(probs)
+
     def sdd(self, mgr):
         return self.left.sdd(mgr).equiv(self.right.sdd(mgr))
 
@@ -132,6 +174,12 @@ class Const(TreeNode):
         return self if self.is_bool else Const(bool(self.value))
 
     def prod_tnorm(self, probs):
+        return 1.0 if self.value else 0.0
+
+    def lukasiewicz_tnorm(self, probs):
+        return 1.0 if self.value else 0.0
+
+    def godel_tnorm(self, probs):
         return 1.0 if self.value else 0.0
 
     def sdd(self, mgr):
@@ -180,6 +228,12 @@ class IdentifierRef(TreeNode):
     def prod_tnorm(self, probs):
         return self.iddef.definition.prod_tnorm(probs)
 
+    def lukasiewicz_tnorm(self, probs):
+        return self.iddef.definition.lukasiewicz_tnorm(probs)
+
+    def godel_tnorm(self, probs):
+        return self.iddef.definition.godel_tnorm(probs)
+
 
 class FunDef(TreeNode):
     def __init__(self, arg_pos, iddefs, return_node):
@@ -194,6 +248,12 @@ class FunDef(TreeNode):
 
     def prod_tnorm(self, probs):
         return self.return_node.prod_tnorm(probs)
+
+    def lukasiewicz_tnorm(self, probs):
+        return self.return_node.lukasiewicz_tnorm(probs)
+
+    def godel_tnorm(self, probs):
+        return self.return_node.godel_tnorm(probs)
 
     def sdd(self, mgr):
         return self.return_node.sdd(mgr)
