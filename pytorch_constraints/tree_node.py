@@ -12,10 +12,6 @@ class TreeNode:
     def as_bool(self):
         return self
 
-    def prod_tnorm(self, probs):
-        print(self)
-        raise NotImplementedError
-
     def lukasiewicz_tnorm(self, probs):
         print(self)
         raise NotImplementedError
@@ -33,6 +29,20 @@ class TreeNode:
                 self.name == obj.name and self.children == obj.children)
 
 
+class TreeNodeVisitor:
+
+    def visit(self, node, probs):
+        """Visit a node."""
+        method = 'visit_' + node.__class__.__name__
+        visitor = getattr(self, method, self.generic_visit)
+        return visitor(node, probs)
+
+    def generic_visit(self, node, probs):
+        """Called if no explicit visitor function exists for a node."""
+        print(self)
+        raise NotImplementedError
+
+
 class BinaryOp(TreeNode):
     def __init__(self, name, left, right):
         self.left = left
@@ -43,11 +53,6 @@ class BinaryOp(TreeNode):
 class And(BinaryOp):
     def __init__(self, left, right):
         super().__init__("And", left, right)
-
-    def prod_tnorm(self, probs):
-        lv = self.left.prod_tnorm(probs)
-        rv = self.right.prod_tnorm(probs)
-        return lv * rv
 
     def lukasiewicz_tnorm(self, probs):
         lv = self.left.lukasiewicz_tnorm(probs)
@@ -68,11 +73,6 @@ class And(BinaryOp):
 class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
-
-    def prod_tnorm(self, probs):
-        lv = self.left.prod_tnorm(probs)
-        rv = self.right.prod_tnorm(probs)
-        return lv + rv - lv * rv
 
     def lukasiewicz_tnorm(self, probs):
         lv = self.left.lukasiewicz_tnorm(probs)
@@ -101,9 +101,6 @@ class Not(UnaryOp):
     def __init__(self, operand):
         super().__init__("Not", operand)
 
-    def prod_tnorm(self, probs):
-        return 1.0 - self.operand.prod_tnorm(probs)
-
     def lukasiewicz_tnorm(self, probs):
         return 1.0 - self.operand.lukasiewicz_tnorm(probs)
 
@@ -117,18 +114,6 @@ class Not(UnaryOp):
 class IsEq(BinaryOp):
     def __init__(self, left, right):
         super().__init__('Eq', left, right)
-
-    def prod_tnorm(self, probs):
-        if isinstance(self.left, VarUse) and isinstance(self.right, Const):
-            return self.left.probs(probs)[self.right.value]
-        elif isinstance(self.left, Const) and isinstance(self.right, VarUse):
-            return self.right.probs(probs)[self.left.value]
-        elif isinstance(self.left, Const) and isinstance(self.right, Const):
-            return 1.0 if self.left.value == self.right.value else 0.0
-        elif isinstance(self.left, VarUse) and isinstance(self.right, VarUse):
-            return (self.left.probs(probs)*self.right.probs(probs)).sum()
-        else:
-            raise NotImplementedError
 
     def lukasiewicz_tnorm(self, probs):
         return self.prod_tnorm(probs)
@@ -148,9 +133,6 @@ class Const(TreeNode):
 
     def as_bool(self):
         return self if self.is_bool else Const(bool(self.value))
-
-    def prod_tnorm(self, probs):
-        return 1.0 if self.value else 0.0
 
     def lukasiewicz_tnorm(self, probs):
         return 1.0 if self.value else 0.0
@@ -201,9 +183,6 @@ class IdentifierRef(TreeNode):
         self.iddef = iddef
         super().__init__('{'+self.iddef.id+'}', [])
 
-    def prod_tnorm(self, probs):
-        return self.iddef.definition.prod_tnorm(probs)
-
     def lukasiewicz_tnorm(self, probs):
         return self.iddef.definition.lukasiewicz_tnorm(probs)
 
@@ -221,9 +200,6 @@ class FunDef(TreeNode):
                 ','.join(self.arg_pos.keys()),
                 ';'.join([str(v) for v in self.iddefs.values()]),
                 self.return_node), [])
-
-    def prod_tnorm(self, probs):
-        return self.return_node.prod_tnorm(probs)
 
     def lukasiewicz_tnorm(self, probs):
         return self.return_node.lukasiewicz_tnorm(probs)
