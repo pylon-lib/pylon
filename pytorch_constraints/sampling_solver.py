@@ -15,22 +15,20 @@ class SamplingSolver(Solver):
         self.num_samples = num_samples
         self.random = Random(torch.random.get_rng_state())
 
-    def sample(self, logits):
+    def sample(self, logits, num_samples):
         '''Sample a decoding of variables.'''
-        while(True):
-            values = []
-            for i in range(len(logits)):
-                value = []
-                for v in range(logits[i].shape[0]):
-                    value.append(self.random.randint(0, logits[i].shape[1]-1))
-                values.append(tuple(value))
-            yield tuple(values)
+
+        weights = [torch.ones_like(logits[i]) for i in range(len(logits))]
+
+        samples = tuple([torch.multinomial(weights[i], num_samples=num_samples, replacement=True).transpose_(0, 1) for i in range(len(logits))])
+        return list(zip(*samples))
 
     def loss(self, *logits):
-        sampler = self.sample(logits)
-        samples = [next(sampler) for _ in range(self.num_samples)]
+
+        samples = self.sample(logits, self.num_samples)
 
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
+
         satis_losses = tuple(map(lambda sample: decoding_loss(sample, log_probs),
                                  [s for s in samples if self.cond(*s)]))
         satis_loss = torch.stack(satis_losses).logsumexp(dim=0)\
@@ -46,10 +44,11 @@ class SamplingSolver(Solver):
 
 
 class WeightedSamplingSolver(SamplingSolver):
-    def sample(self, logits):
+
+    def sample(self, logits, num_samples):
         '''Sample a decoding of variables from a multinomial distribution parameterized by network probabilities'''
 
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
 
-        while(True):
-            yield tuple([torch.multinomial(probs[i], num_samples=1, replacement=True).transpose_(0, 1).flatten() for i in range(len(logits))])
+        samples = tuple([torch.multinomial(probs[i], num_samples=num_samples, replacement=True).transpose_(0, 1) for i in range(len(logits))])
+        return list(zip(*samples))
