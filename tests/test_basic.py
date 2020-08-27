@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from pytorch_constraints.brute_force_solver import *
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.sampling_solver import *
-from pytorch_constraints.semantic_solver import SemanticSolver
 from pytorch_constraints.tnorm_solver import ProductTNormLogicSolver
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 
