@@ -15,6 +15,7 @@ class SemanticLossCircuitSolver(ASTLogicSolver):
         sdd = SddVisitor().visit(self.bool_tree, mgr)
         return -self.prob(sdd,probs).log()
 
+    # TODO: write a logprob solver that avoids underflow.
     def prob(self, sdd, lit_probs):
         if sdd.is_false():
             return 0.0
