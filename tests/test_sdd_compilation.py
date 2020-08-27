@@ -3,7 +3,7 @@ import ast
 import inspect
 
 from pytorch_constraints.ast_visitor import *
-from pytorch_constraints.sdd_solver import SddVisitor
+from pytorch_constraints.circuit_solver import SddVisitor
 from pysdd.sdd import SddManager, Vtree, WmcManager
 
 
