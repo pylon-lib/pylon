@@ -4,7 +4,7 @@ import ast
 import inspect
 
 from .ast_visitor import FunDefFindingVisitor
-from .ast_visitor import LogicExpressionVisitor
+from .ast_visitor import LogicExpressionASTVisitor
 
 
 class Solver:
@@ -41,6 +41,6 @@ class ASTSolver(Solver):
 class ASTLogicSolver(ASTSolver):
 
     def visit_ast(self, astree):
-        self.visitor = LogicExpressionVisitor()
+        self.visitor = LogicExpressionASTVisitor()
         self.bool_tree = self.visitor.visit(astree)
         print(self.bool_tree)

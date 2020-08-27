@@ -50,7 +50,7 @@ def test_parses(parses):
     for (f, tree) in parses:
         astree = parse_object(f)
         fundef = finder.visit(astree)
-        parser = LogicExpressionVisitor()
+        parser = LogicExpressionASTVisitor()
         ptree = parser.visit(fundef)
         print(ptree)
         assert ptree.return_node == tree

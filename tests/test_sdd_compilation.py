@@ -11,7 +11,7 @@ def parse_object(obj):
     source = inspect.getsource(obj)
     astree = ast.parse(source)
     fundef = finder.visit(astree)
-    parser = LogicExpressionVisitor()
+    parser = LogicExpressionASTVisitor()
     return parser.visit(fundef)
 
 
