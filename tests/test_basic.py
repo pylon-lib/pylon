@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../')
 import torch
 import torch.nn.functional as F
 
@@ -36,7 +38,7 @@ def test_xor_binary(net_binary):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         # SemanticSolver(),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
     for solver in solvers:
         num_tries = 5  # since it's random
@@ -60,7 +62,7 @@ def test_xor_multi(net_multi):
     solvers = [
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]  # SemanticSolver(),
     for solver in solvers:
         print("Testing", type(solver).__name__)
@@ -86,7 +88,7 @@ def test_eq_multi(net_multi):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         # SemanticSolver(),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
     for solver in solvers:
         print("Testing", type(solver).__name__)
@@ -112,7 +114,7 @@ def test_neq_multi(net_multi):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         # SemanticSolver(),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
     for solver in solvers:
         print("Testing", type(solver).__name__)

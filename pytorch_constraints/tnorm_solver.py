@@ -58,8 +58,11 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
     def visit_Or(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
-        # min(1,x) = 1-max(0,1-x)
-        return 1 - torch.max(lv, rv)
+
+        #when input tensor has 0-dim, torch.min/max with constant doesn't work directly, so use relu
+        # min(1,a+b) = 1-relu(0,1-a-b)
+        return 1 - torch.relu(1 - lv - rv)
+        
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -89,13 +92,12 @@ class GodelTNormVisitor(TreeNodeVisitor):
     def visit_And(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
-        return torch.relu(lv + rv - 1)
+        return torch.min(lv, rv)
 
     def visit_Or(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
-        # min(1,x) = 1-max(0,1-x)
-        return 1 - torch.relu(1 - lv - rv)
+        return torch.max(lv, rv)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
