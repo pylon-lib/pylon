@@ -3,6 +3,7 @@ import ast
 import inspect
 
 from pytorch_constraints.ast_visitor import *
+from pytorch_constraints.sdd_solver import SddVisitor
 from pysdd.sdd import SddManager, Vtree, WmcManager
 
 
@@ -19,7 +20,7 @@ def compile(obj):
     ptree = parse_object(obj)
     vtree = Vtree(var_count=1)
     mgr = SddManager.from_vtree(vtree)
-    return ptree.sdd(mgr)
+    return SddVisitor().visit(ptree, mgr)
 
 
 def true(y): return True

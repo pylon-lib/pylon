@@ -12,10 +12,6 @@ class TreeNode:
     def as_bool(self):
         return self
 
-    def sdd(self, mgr):
-        print(self)
-        raise NotImplementedError
-
     def __eq__(self, obj):
         return (type(obj) == type(self) and
                 self.name == obj.name and self.children == obj.children)
@@ -23,13 +19,13 @@ class TreeNode:
 
 class TreeNodeVisitor:
 
-    def visit(self, node, probs):
+    def visit(self, node, args):
         """Visit a node."""
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        return visitor(node, probs)
+        return visitor(node, args)
 
-    def generic_visit(self, node, probs):
+    def generic_visit(self, node, args):
         """Called if no explicit visitor function exists for a node."""
         print(self)
         raise NotImplementedError
@@ -46,20 +42,10 @@ class And(BinaryOp):
     def __init__(self, left, right):
         super().__init__("And", left, right)
 
-    def sdd(self, mgr):
-        l = self.left.sdd()
-        r = self.right.sdd()
-        return l & r
-
 
 class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
-
-    def sdd(self, mgr):
-        l = self.left.sdd()
-        r = self.right.sdd()
-        return l | r
 
 
 class UnaryOp(TreeNode):
@@ -72,16 +58,10 @@ class Not(UnaryOp):
     def __init__(self, operand):
         super().__init__("Not", operand)
 
-    def sdd(self, mgr):
-        return ~self.operand.sdd()
-
 
 class IsEq(BinaryOp):
     def __init__(self, left, right):
         super().__init__('Eq', left, right)
-
-    def sdd(self, mgr):
-        return self.left.sdd(mgr).equiv(self.right.sdd(mgr))
 
 
 class Const(TreeNode):
@@ -92,14 +72,6 @@ class Const(TreeNode):
 
     def as_bool(self):
         return self if self.is_bool else Const(bool(self.value))
-
-    def sdd(self, mgr):
-        if self.value == True or self.value == 1:
-            return mgr.true()
-        elif self.value == False or self.value == 0:
-            return mgr.false()
-        else:
-            raise NotImplementedError
 
 
 class VarUse(TreeNode):
@@ -114,14 +86,6 @@ class VarUse(TreeNode):
 
     def as_bool(self):
         return Not(IsEq(self, Const(0)))
-
-    def sdd(self, mgr):
-        if self.varidx != 0:
-            raise NotImplementedError
-        else:
-            while mgr.var_count() < self.index+1:
-                mgr.add_var_after_last()
-            return mgr.literal(self.index+1)
 
 
 class IdentifierDef(TreeNode):
