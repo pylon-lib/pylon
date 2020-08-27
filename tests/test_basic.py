@@ -1,10 +1,12 @@
+import sys
+sys.path.append('../')
 import torch
 import torch.nn.functional as F
 
 from pytorch_constraints.brute_force_solver import *
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.sampling_solver import *
-from pytorch_constraints.tnorm_solver import ProductTNormLogicSolver
+from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 
 from .basic_model import net_binary, net_multi, train
@@ -36,7 +38,7 @@ def test_xor_binary(net_binary):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         SemanticLossCircuitSolver(),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
     for solver in solvers:
         num_tries = 5  # since it's random
@@ -61,8 +63,8 @@ def test_xor_multi(net_multi):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         SemanticLossCircuitSolver(),
-        ProductTNormLogicSolver()
-    ]
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
+    ] 
     for solver in solvers:
         print("Testing", type(solver).__name__)
         num_tries = 5  # since it's random
@@ -87,7 +89,7 @@ def test_eq_multi(net_multi):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         SemanticLossCircuitSolver(),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
     for solver in solvers:
         print("Testing", type(solver).__name__)
@@ -113,7 +115,7 @@ def test_neq_multi(net_multi):
         SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
         SemanticLossCircuitSolver(),
-        ProductTNormLogicSolver()
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
     for solver in solvers:
         print("Testing", type(solver).__name__)
