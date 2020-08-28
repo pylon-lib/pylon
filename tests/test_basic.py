@@ -133,3 +133,53 @@ def test_neq_multi(net_multi):
             assert y[1, 1] > 0.8
 
         assert success == num_tries
+
+def test_logical_and_binary(net_binary):
+    num_samples = 10
+    solvers = [
+        SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
+        SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
+        SemanticLossCircuitSolver(),
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
+    ]
+    for solver in solvers:
+        num_tries = 5  # since it's random
+        success = 0
+        for i in range(num_tries):
+            cons = constraint(lambda y: y[0] and y[1], solver)
+
+            net, y0 = train(net_binary, cons)
+            x = torch.tensor([1.0])
+            y = F.softmax(net(x), dim=-1)
+
+            if y[0, 0] > 0.75 and y[0, 1] < 0.25:
+                success += 1
+            assert y[1, 0] > 0.75 and y[1, 1] < 0.25
+
+        assert success == num_tries
+
+
+def test_logical_and_multi(net_multi):
+    num_samples = 20
+    solvers = [
+        SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
+        SamplingSolver(num_samples), WeightedSamplingSolver(num_samples),
+        SemanticLossCircuitSolver(),
+        ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
+    ] 
+    for solver in solvers:
+        print("Testing", type(solver).__name__)
+        num_tries = 5  # since it's random
+        success = 0
+        for i in range(num_tries):
+            cons = constraint(lambda y: y[0] and y[1], solver)
+
+            net, y0 = train(net_multi, cons)
+            x = torch.tensor([1.0])
+            y = F.softmax(net(x), dim=-1)
+
+            if y[0, 0] > 0.6 and y[0, 1] < 0.2 and y[0, 2] < 0.2:
+                success += 1
+            assert y[1, 0] > 0.6 and y[1, 1] < 0.2 and y[1, 2] < 0.2
+
+        assert success == num_tries
