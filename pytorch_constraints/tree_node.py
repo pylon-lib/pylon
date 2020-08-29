@@ -84,9 +84,6 @@ class VarUse(TreeNode):
     def probs(self, probs):
         return probs[self.varidx][self.index]
 
-    def as_bool(self):
-        return Not(IsEq(self, Const(0)))
-
 
 class IdentifierDef(TreeNode):
     def __init__(self, id, definition):

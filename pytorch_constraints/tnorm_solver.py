@@ -34,6 +34,10 @@ class ProductTNormVisitor(TreeNodeVisitor):
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
 
+    def visit_VarUse(self, node, probs):
+        # assume 0 is false
+        return 1.0 - node.probs(probs)[0]
+
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)
 
@@ -59,10 +63,9 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
 
-        #when input tensor has 0-dim, torch.min/max with constant doesn't work directly, so use relu
+        # when input tensor has 0-dim, torch.min/max with constant doesn't work directly, so use relu
         # min(1,a+b) = 1-relu(0,1-a-b)
         return 1 - torch.relu(1 - lv - rv)
-        
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -72,6 +75,10 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
 
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
+
+    def visit_VarUse(self, node, probs):
+        # assume 0 is false
+        return 1.0 - node.probs(probs)[0]
 
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)
@@ -107,6 +114,10 @@ class GodelTNormVisitor(TreeNodeVisitor):
 
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
+
+    def visit_VarUse(self, node, probs):
+        # assume 0 is false
+        return 1.0 - node.probs(probs)[0]
 
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)

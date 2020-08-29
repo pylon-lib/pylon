@@ -40,7 +40,7 @@ def parses():
         (y_eq_const, IsEq(VarUse(0, 'y', 0), Const(0))),
         (const_eq_y, IsEq(Const(0), VarUse(0, 'y', 0))),
         (var_eq_var, IsEq(VarUse(0, 'y', 0), VarUse(0, 'y', 1))),
-        (y0, Not(IsEq(VarUse(0, 'y', 0), Const(0)))),
+        (y0, VarUse(0, 'y', 0)),
         (two_vars, IsEq(VarUse(0, 'x', 0), VarUse(1, 'y', 1)))
     ]
 
