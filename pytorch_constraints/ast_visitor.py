@@ -65,6 +65,23 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         opr = self.visit(node.operand)
         return op_func(opr)
 
+    def visit_Call(self, node):
+        def attribute_calls(n):
+            supported_attr = {
+                'implication': lambda x, y: Residuum(x.as_bool(), y.as_bool()), # this is the same as x >> y, i.e. the default implication rule
+                'sigmoidal_implication': lambda x, y: SigmoidalImplication(x.as_bool(), y.as_bool())
+            }
+            assert len(node.args) == 1, 'sigmoidal_implication only accepts one RHS variable'
+            op_func = supported_attr[node.func.attr]
+            return op_func(self.visit(node.func.value), self.visit(node.args[0]))
+
+        supported_func = {
+            ast.Attribute: attribute_calls
+        }
+
+        func = supported_func[type(node.func)]
+        return func(node)
+
     def visit_Subscript(self, node):
         # TODO check node.value is the variable?
         varidx = self.arg_pos[node.value.id]

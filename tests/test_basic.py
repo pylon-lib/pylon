@@ -160,9 +160,27 @@ def test_logical_and_multi(net_multi):
 
         assert success == num_tries
 
-
+# TODO, residuum, which uses '>>' operator to fake implication, are currently only implemented in tnorms solvers
 def test_residuum_binary(net_multi):
-    # TODO, residuum, which uses '>>' operator to fake implication, are currently only implemented in tnorms solvers
+    solvers = get_tnorm_solvers()
+    for solver in solvers:
+        print("Testing", type(solver).__name__)
+        num_tries = 5  # since it's random
+        success = 0
+        for i in range(num_tries):
+            cons = constraint(lambda y: y[0] <= y[1], solver)
+
+            net, y0 = train(net_multi, cons)
+            x = torch.tensor([1.0])
+            y = F.softmax(net(x), dim=-1)
+
+            if y[0, 1:].max() < y[1, 1:].max():
+                success += 1
+
+        assert success == num_tries
+
+# TODO, residuum, which uses '>>' operator to fake implication, are currently only implemented in tnorms solvers
+def test_residuum_multi(net_multi):
     solvers = get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
@@ -181,21 +199,40 @@ def test_residuum_binary(net_multi):
         assert success == num_tries
 
 
-def test_residuum_multi(net_multi):
-    # TODO, residuum, which uses '>>' operator to fake implication, are currently only implemented in tnorms solvers
+# TODO, sigmoidal implication are currently only implemented in tnorm solvers
+def test_sigmimp_binary(net_multi):
     solvers = get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] <= y[1], solver)
+            cons = constraint(lambda y: y[0].sigmoidal_implication(y[1]), solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
             y = F.softmax(net(x), dim=-1)
 
             if y[0, 1:].max() < y[1, 1:].max():
+                success += 1
+
+        assert success == num_tries
+
+# TODO, sigmoidal implication are currently only implemented in tnorm solvers
+def test_sigmimp_multi(net_multi):
+    solvers = get_tnorm_solvers()
+    for solver in solvers:
+        print("Testing", type(solver).__name__)
+        num_tries = 5  # since it's random
+        success = 0
+        for i in range(num_tries):
+            cons = constraint(lambda y: y[0].sigmoidal_implication(y[1]), solver)
+
+            net, y0 = train(net_multi, cons)
+            x = torch.tensor([1.0])
+            y = F.softmax(net(x), dim=-1)
+
+            if y[0, 0] > y[1, 0]:
                 success += 1
 
         assert success == num_tries

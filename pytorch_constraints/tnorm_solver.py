@@ -1,7 +1,14 @@
 import torch
-
+import numpy as np
 from .solver import ASTLogicSolver
 from .tree_node import *
+
+# implication introduced in Analyzing Differentiable Fuzzy Implications by Krieken et. al. 2020
+#   following definition in Eq 19
+def sigmoidal_implication(imp_func, node, probs):
+    I_val = imp_func(node, probs)
+    s = 1.0
+    return (1 + np.exp(s/2) * torch.sigmoid(s * I_val - s/2) - 1) / (np.exp(s/2) - 1)
 
 
 class ProductTNormVisitor(TreeNodeVisitor):
@@ -21,6 +28,9 @@ class ProductTNormVisitor(TreeNodeVisitor):
         rv = self.visit(node.right, probs)
         # min(1, rv / lv) = 1 - relu(1 - rv / lv)
         return 1 - torch.relu(1 - rv / lv)
+
+    def visit_SigmoidalImplication(self, node, probs):
+        return sigmoidal_implication(self.visit_Residuum, node, probs)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -48,8 +58,6 @@ class ProductTNormVisitor(TreeNodeVisitor):
         return self.visit(node.iddef.definition, probs)
 
     def visit_FunDef(self, node, probs):
-        if isinstance(node.return_node, Residuum):
-            return self.visit_Residuum(node.return_node, probs)
         return self.visit(node.return_node, probs)
 
 
@@ -80,6 +88,9 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
         rv = self.visit(node.right, probs)
         # min(1, 1 - lv + rv) = 1 - relu(lv - rv)
         return 1 - torch.relu(lv - rv)
+
+    def visit_SigmoidalImplication(self, node, probs):
+        return sigmoidal_implication(self.visit_Residuum, node, probs)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -126,6 +137,9 @@ class GodelTNormVisitor(TreeNodeVisitor):
         # 1 if rv >= lv else rv
         rv_geq_lv = (rv >= lv).to(lv)
         return rv_geq_lv + (1 - rv_geq_lv) * rv
+
+    def visit_SigmoidalImplication(self, node, probs):
+        return sigmoidal_implication(self.visit_Residuum, node, probs)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)

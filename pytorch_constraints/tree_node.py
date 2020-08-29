@@ -51,6 +51,10 @@ class Residuum(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Residuum", left, right)
 
+class SigmoidalImplication(BinaryOp):
+    def __init__(self, left, right):
+        super().__init__("SigmoidalImplication", left, right)
+
 
 class UnaryOp(TreeNode):
     def __init__(self, name, operand):
