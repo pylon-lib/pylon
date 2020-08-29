@@ -160,7 +160,7 @@ def test_logical_and_multi(net_multi):
 
         assert success == num_tries
 
-# TODO, residuum, which uses '>>' operator to fake implication, are currently only implemented in tnorms solvers
+# TODO, residuum, which uses '<=' operator to fake implication, are currently only implemented in tnorms solvers
 def test_residuum_binary(net_multi):
     solvers = get_tnorm_solvers()
     for solver in solvers:
@@ -179,7 +179,7 @@ def test_residuum_binary(net_multi):
 
         assert success == num_tries
 
-# TODO, residuum, which uses '>>' operator to fake implication, are currently only implemented in tnorms solvers
+# TODO, residuum, which uses '<=' operator to fake implication, are currently only implemented in tnorms solvers
 def test_residuum_multi(net_multi):
     solvers = get_tnorm_solvers()
     for solver in solvers:

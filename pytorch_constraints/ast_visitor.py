@@ -68,7 +68,7 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
     def visit_Call(self, node):
         def attribute_calls(n):
             supported_attr = {
-                'implication': lambda x, y: Residuum(x.as_bool(), y.as_bool()), # this is the same as x >> y, i.e. the default implication rule
+                'implication': lambda x, y: Residuum(x.as_bool(), y.as_bool()), # this is the same as x <= y, i.e. the default implication rule
                 'sigmoidal_implication': lambda x, y: SigmoidalImplication(x.as_bool(), y.as_bool())
             }
             assert len(node.args) == 1, 'sigmoidal_implication only accepts one RHS variable'
