@@ -2,6 +2,13 @@ import torch
 import pulp
 
 from .solver import ASTLogicSolver
+from .tree_node import TreeNodeVisitor
+
+
+class ILPVisitor(TreeNodeVisitor):
+
+    def visit_And(self, node, args):
+        raise NotImplementedError
 
 
 class ILPSolver(ASTLogicSolver):
@@ -18,7 +25,7 @@ class ILPSolver(ASTLogicSolver):
 
         # constraints
         m += self.bool_tree.prod_tnorm(y_var) == 1
-            
+
         # objective
         obj = 0
         for prob, var in zip(y_prob, y_var):
@@ -36,7 +43,7 @@ class ILPSolver(ASTLogicSolver):
         return sln
 
     def sample(self, y_prob):
-        return [self.inference(y_prob),]
+        return [self.inference(y_prob), ]
 
     def loss(self, logits):
         probs = torch.softmax(logits, dim=-1)
