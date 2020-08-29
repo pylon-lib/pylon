@@ -47,6 +47,10 @@ class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
 
+class Residuum(BinaryOp):
+    def __init__(self, left, right):
+        super().__init__("Residuum", left, right)
+
 
 class UnaryOp(TreeNode):
     def __init__(self, name, operand):

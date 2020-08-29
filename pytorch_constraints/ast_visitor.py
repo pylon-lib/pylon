@@ -107,7 +107,8 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
     def visit_Compare(self, node):
         supported = {
             ast.Eq: (lambda left, right: IsEq(left, right)),
-            ast.NotEq: (lambda left, right: Not(IsEq(left, right)))
+            ast.NotEq: (lambda left, right: Not(IsEq(left, right))),
+            ast.LtE:  (lambda left, right: Residuum(left.as_bool(), right.as_bool()))   # implication/residuum
         }
         assert(len(node.ops))
         op_func = supported[type(node.ops[0])]

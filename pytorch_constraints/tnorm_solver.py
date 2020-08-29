@@ -16,6 +16,12 @@ class ProductTNormVisitor(TreeNodeVisitor):
         rv = self.visit(node.right, probs)
         return lv + rv - lv * rv
 
+    def visit_Residuum(self, node, probs):
+        lv = self.visit(node.left, probs)
+        rv = self.visit(node.right, probs)
+        # min(1, rv / lv) = 1 - relu(1 - rv / lv)
+        return 1 - torch.relu(1 - rv / lv)
+
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
 
@@ -42,6 +48,8 @@ class ProductTNormVisitor(TreeNodeVisitor):
         return self.visit(node.iddef.definition, probs)
 
     def visit_FunDef(self, node, probs):
+        if isinstance(node.return_node, Residuum):
+            return self.visit_Residuum(node.return_node, probs)
         return self.visit(node.return_node, probs)
 
 
@@ -66,6 +74,12 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
         # when input tensor has 0-dim, torch.min/max with constant doesn't work directly, so use relu
         # min(1,a+b) = 1-relu(0,1-a-b)
         return 1 - torch.relu(1 - lv - rv)
+
+    def visit_Residuum(self, node, probs):
+        lv = self.visit(node.left, probs)
+        rv = self.visit(node.right, probs)
+        # min(1, 1 - lv + rv) = 1 - relu(lv - rv)
+        return 1 - torch.relu(lv - rv)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -105,6 +119,13 @@ class GodelTNormVisitor(TreeNodeVisitor):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
         return torch.max(lv, rv)
+
+    def visit_Residuum(self, node, probs):
+        lv = self.visit(node.left, probs)
+        rv = self.visit(node.right, probs)
+        # 1 if rv >= lv else rv
+        rv_geq_lv = (rv >= lv).to(lv)
+        return rv_geq_lv + (1 - rv_geq_lv) * rv
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
