@@ -1,7 +1,6 @@
 import ast
 from functools import reduce
 import torch
-
 from .tree_node import *
 
 
@@ -67,13 +66,30 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         def attribute_calls(n):
+            if node.func.attr == 'implication':
+                assert(len(node.args) == 1)
+                op_func = lambda x, y: Residuum(x.as_bool(), y.as_bool())
+                return op_func(self.visit(node.func.value), self.visit(node.args[0]))
+            elif node.func.attr == 'sigmoidal_implication':
+                assert(len(node.args) <= 2)
+                op_func = lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
+                s = ast.Constant(1.0)
+
+                if len(node.keywords) != 0: # to support func call like x.sigmoidal_implication(y, s=1.0)
+                    s = next(filter(lambda x: x.arg == 's', node.keywords)).value
+                elif len(node.args) == 2:   # to support func call like x.sigmoidal_implication(y, 1.0)
+                    s = node.args[1]
+
+                assert(isinstance(s, ast.Constant))
+                return op_func(self.visit(node.func.value), self.visit(node.args[0]), s)
+            else:
+                raise Exception('unsupported function call', node.func.attr)
+
+
             supported_attr = {
                 'implication': lambda x, y: Residuum(x.as_bool(), y.as_bool()), # this is the same as x <= y, i.e. the default implication rule
-                'sigmoidal_implication': lambda x, y: SigmoidalImplication(x.as_bool(), y.as_bool())
+                'sigmoidal_implication': lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
             }
-            assert len(node.args) == 1, 'sigmoidal_implication only accepts one RHS variable'
-            op_func = supported_attr[node.func.attr]
-            return op_func(self.visit(node.func.value), self.visit(node.args[0]))
 
         supported_func = {
             ast.Attribute: attribute_calls

@@ -7,7 +7,7 @@ from .tree_node import *
 #   following definition in Eq 19
 def sigmoidal_implication(imp_func, node, probs):
     I_val = imp_func(node, probs)
-    s = 1.0
+    s = node.s.value
     return (1 + np.exp(s/2) * torch.sigmoid(s * I_val - s/2) - 1) / (np.exp(s/2) - 1)
 
 
