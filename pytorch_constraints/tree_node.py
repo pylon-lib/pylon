@@ -47,9 +47,9 @@ class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
 
-class Residuum(BinaryOp):
+class Implication(BinaryOp):
     def __init__(self, left, right):
-        super().__init__("Residuum", left, right)
+        super().__init__("Implication", left, right)
 
 class SigmoidalImplication(BinaryOp):
     def __init__(self, left, right, s=1.0):

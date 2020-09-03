@@ -23,14 +23,14 @@ class ProductTNormVisitor(TreeNodeVisitor):
         rv = self.visit(node.right, probs)
         return lv + rv - lv * rv
 
-    def visit_Residuum(self, node, probs):
+    def visit_Implication(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
         # min(1, rv / lv) = 1 - relu(1 - rv / lv)
         return 1 - torch.relu(1 - rv / lv)
 
     def visit_SigmoidalImplication(self, node, probs):
-        return sigmoidal_implication(self.visit_Residuum, node, probs)
+        return sigmoidal_implication(self.visit_Implication, node, probs)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -83,14 +83,14 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
         # min(1,a+b) = 1-relu(0,1-a-b)
         return 1 - torch.relu(1 - lv - rv)
 
-    def visit_Residuum(self, node, probs):
+    def visit_Implication(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
         # min(1, 1 - lv + rv) = 1 - relu(lv - rv)
         return 1 - torch.relu(lv - rv)
 
     def visit_SigmoidalImplication(self, node, probs):
-        return sigmoidal_implication(self.visit_Residuum, node, probs)
+        return sigmoidal_implication(self.visit_Implication, node, probs)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
@@ -131,7 +131,7 @@ class GodelTNormVisitor(TreeNodeVisitor):
         rv = self.visit(node.right, probs)
         return torch.max(lv, rv)
 
-    def visit_Residuum(self, node, probs):
+    def visit_Implication(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
         # 1 if rv >= lv else rv
@@ -139,7 +139,7 @@ class GodelTNormVisitor(TreeNodeVisitor):
         return rv_geq_lv + (1 - rv_geq_lv) * rv
 
     def visit_SigmoidalImplication(self, node, probs):
-        return sigmoidal_implication(self.visit_Residuum, node, probs)
+        return sigmoidal_implication(self.visit_Implication, node, probs)
 
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)

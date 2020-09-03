@@ -66,18 +66,18 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         def attribute_calls(n):
-            if n.func.attr == 'implication':
+            if n.func.attr == 'implies':
                 assert(len(n.args) == 1)
-                op_func = lambda x, y: Residuum(x.as_bool(), y.as_bool())
+                op_func = lambda x, y: Implication(x.as_bool(), y.as_bool())
                 return op_func(self.visit(n.func.value), self.visit(n.args[0]))
-            elif n.func.attr == 'sigmoidal_implication':
+            elif n.func.attr == 's_implies':
                 assert(len(n.args) <= 2)
                 op_func = lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
                 s = ast.Constant(1.0)
 
-                if len(n.keywords) != 0: # to support func call like x.sigmoidal_implication(y, s=1.0)
+                if len(n.keywords) != 0: # to support func call like x.s_implies(y, s=1.0)
                     s = next(filter(lambda x: x.arg == 's', n.keywords)).value
-                elif len(n.args) == 2:   # to support func call like x.sigmoidal_implication(y, 1.0)
+                elif len(n.args) == 2:   # to support func call like x.s_implies(y, 1.0)
                     s = n.args[1]
 
                 assert(isinstance(s, ast.Constant))
@@ -87,8 +87,8 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
 
 
             supported_attr = {
-                'implication': lambda x, y: Residuum(x.as_bool(), y.as_bool()), # this is the same as x <= y, i.e. the default implication rule
-                'sigmoidal_implication': lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
+                'implies': lambda x, y: Implication(x.as_bool(), y.as_bool()), # this is the same as x <= y, i.e. the default implication rule
+                's_implies': lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
             }
 
         supported_func = {
@@ -141,7 +141,7 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         supported = {
             ast.Eq: (lambda left, right: IsEq(left, right)),
             ast.NotEq: (lambda left, right: Not(IsEq(left, right))),
-            ast.LtE:  (lambda left, right: Residuum(left.as_bool(), right.as_bool()))   # implication/residuum
+            ast.LtE:  (lambda left, right: Implication(left.as_bool(), right.as_bool()))   # implication/residuum
         }
         assert(len(node.ops))
         op_func = supported[type(node.ops[0])]

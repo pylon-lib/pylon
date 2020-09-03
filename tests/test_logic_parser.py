@@ -23,7 +23,8 @@ def y0(y): return y[0]
 
 def two_vars(x, y): return x[0] == y[1]
 def x_implies_y(x, y): return x[0] <= y[1]
-def x_sigm_implies_y(x, y): return x[0].sigmoidal_implication(y[1])
+def x_implies_y_func(x, y): return x[0].implies(y[1])
+def x_s_implies_y(x, y): return x[0].s_implies(y[1])
 
 
 def two_vars_assign(x, y):
@@ -44,8 +45,9 @@ def parses():
         (var_eq_var, IsEq(VarUse(0, 'y', 0), VarUse(0, 'y', 1))),
         (y0, VarUse(0, 'y', 0)),
         (two_vars, IsEq(VarUse(0, 'x', 0), VarUse(1, 'y', 1))),
-        (x_implies_y, Residuum(VarUse(0, 'x', 0), VarUse(1, 'y', 1))),
-        (x_sigm_implies_y, SigmoidalImplication(VarUse(0, 'x', 0), VarUse(1, 'y', 1)))
+        (x_implies_y, Implication(VarUse(0, 'x', 0), VarUse(1, 'y', 1))),
+        (x_implies_y_func, Implication(VarUse(0, 'x', 0), VarUse(1, 'y', 1))),
+        (x_s_implies_y, SigmoidalImplication(VarUse(0, 'x', 0), VarUse(1, 'y', 1)))
     ]
 
 
