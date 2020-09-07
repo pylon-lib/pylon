@@ -47,14 +47,10 @@ class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
 
+
 class Implication(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Implication", left, right)
-
-class SigmoidalImplication(BinaryOp):
-    def __init__(self, left, right, s=1.0):
-        super().__init__("SigmoidalImplication", left, right)
-        self.s = s  # s is an ast.Constant
 
 
 class UnaryOp(TreeNode):

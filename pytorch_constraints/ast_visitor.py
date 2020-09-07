@@ -64,40 +64,6 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         opr = self.visit(node.operand)
         return op_func(opr)
 
-    def visit_Call(self, node):
-        def attribute_calls(n):
-            if n.func.attr == 'implies':
-                assert(len(n.args) == 1)
-                op_func = lambda x, y: Implication(x.as_bool(), y.as_bool())
-                return op_func(self.visit(n.func.value), self.visit(n.args[0]))
-            elif n.func.attr == 's_implies':
-                assert(len(n.args) <= 2)
-                op_func = lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
-                s = ast.Constant(1.0)
-
-                if len(n.keywords) != 0: # to support func call like x.s_implies(y, s=1.0)
-                    s = next(filter(lambda x: x.arg == 's', n.keywords)).value
-                elif len(n.args) == 2:   # to support func call like x.s_implies(y, 1.0)
-                    s = n.args[1]
-
-                assert(isinstance(s, ast.Constant))
-                return op_func(self.visit(n.func.value), self.visit(n.args[0]), s)
-            else:
-                raise Exception('unsupported function call', n.func.attr)
-
-
-            supported_attr = {
-                'implies': lambda x, y: Implication(x.as_bool(), y.as_bool()), # this is the same as x <= y, i.e. the default implication rule
-                's_implies': lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
-            }
-
-        supported_func = {
-            ast.Attribute: attribute_calls
-        }
-
-        func = supported_func[type(node.func)]
-        return func(node)
-
     def visit_Subscript(self, node):
         # TODO check node.value is the variable?
         varidx = self.arg_pos[node.value.id]

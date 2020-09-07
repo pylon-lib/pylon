@@ -3,15 +3,6 @@ import numpy as np
 from .solver import ASTLogicSolver
 from .tree_node import *
 
-# implication introduced in Analyzing Differentiable Fuzzy Implications by Krieken et. al. 2020
-#   following definition in Eq 19
-
-
-def sigmoidal_implication(imp_func, node, probs):
-    I_val = imp_func(node, probs)
-    s = node.s.value
-    return (1 + np.exp(s/2) * torch.sigmoid(s * I_val - s/2) - 1) / (np.exp(s/2) - 1)
-
 
 class ProductTNormVisitor(TreeNodeVisitor):
 

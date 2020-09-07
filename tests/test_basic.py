@@ -1,15 +1,13 @@
+from .basic_model import net_binary, net_multi, train
+from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
+from pytorch_constraints.tnorm_solver import *
+from pytorch_constraints.sampling_solver import *
+from pytorch_constraints.constraint import constraint
+from pytorch_constraints.brute_force_solver import *
+import torch.nn.functional as F
+import torch
 import sys
 sys.path.append('../')
-import torch
-import torch.nn.functional as F
-
-from pytorch_constraints.brute_force_solver import *
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.sampling_solver import *
-from pytorch_constraints.tnorm_solver import *
-from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
-
-from .basic_model import net_binary, net_multi, train
 
 
 def xor(y):
@@ -39,6 +37,7 @@ def get_solvers(num_samples):
         SemanticLossCircuitSolver(),
         ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()
     ]
+
 
 def get_tnorm_solvers():
     return [
@@ -179,8 +178,9 @@ def test_logical_and_multi(net_multi):
 
         assert success == num_tries
 
-# TODO, currently only implemented in tnorms solvers
+
 def test_implication_multi(net_multi):
+    # TODO, currently only implemented in tnorms solvers
     solvers = get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
@@ -194,26 +194,6 @@ def test_implication_multi(net_multi):
             y = F.softmax(net(x), dim=-1)
 
             if y[0, 1:].max() < y[1, 1:].max():
-                success += 1
-
-        assert success == num_tries
-
-
-# TODO, sigmoidal implication are currently only implemented in tnorm solvers
-def test_s_implication_multi(net_multi):
-    solvers = get_tnorm_solvers()
-    for solver in solvers:
-        print("Testing", type(solver).__name__)
-        num_tries = 5  # since it's random
-        success = 0
-        for i in range(num_tries):
-            cons = constraint(lambda y: y[0].s_implies(y[1]), solver)
-
-            net, y0 = train(net_multi, cons)
-            x = torch.tensor([1.0])
-            y = F.softmax(net(x), dim=-1)
-
-            if y[0, 0] > y[1, 0]:
                 success += 1
 
         assert success == num_tries
