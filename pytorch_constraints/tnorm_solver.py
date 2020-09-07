@@ -5,6 +5,8 @@ from .tree_node import *
 
 # implication introduced in Analyzing Differentiable Fuzzy Implications by Krieken et. al. 2020
 #   following definition in Eq 19
+
+
 def sigmoidal_implication(imp_func, node, probs):
     I_val = imp_func(node, probs)
     s = node.s.value
@@ -63,7 +65,7 @@ class ProductTNormVisitor(TreeNodeVisitor):
 
 class ProductTNormLogicSolver(ASTLogicSolver):
 
-    def loss(self, *logits):
+    def loss(self, *logits, **kwargs):
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
         return -ProductTNormVisitor().visit(self.bool_tree, probs).log()
 
@@ -114,7 +116,7 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
 
 class LukasiewiczTNormLogicSolver(ASTLogicSolver):
 
-    def loss(self, *logits):
+    def loss(self, *logits, **kwargs):
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
         return -LukasiewiczTNormVisitor().visit(self.bool_tree, probs).log()
 
@@ -163,6 +165,6 @@ class GodelTNormVisitor(TreeNodeVisitor):
 
 class GodelTNormLogicSolver(ASTLogicSolver):
 
-    def loss(self, *logits):
+    def loss(self, *logits, **kwargs):
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
         return -GodelTNormVisitor().visit(self.bool_tree, probs).log()

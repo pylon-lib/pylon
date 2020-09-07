@@ -23,7 +23,7 @@ class BruteForceSolver(Solver):
         '''How do we aggregate the losses for each decoding.'''
         return sum(losses)
 
-    def loss(self, *logits):
+    def loss(self, *logits, **kwargs):
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
         samples = filter(self.filter, self.all_samples(log_probs))
         losses = map(lambda values: decoding_loss(values, log_probs), samples)

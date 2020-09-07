@@ -20,10 +20,11 @@ class SamplingSolver(Solver):
 
         weights = [torch.ones_like(logits[i]) for i in range(len(logits))]
 
-        samples = tuple([torch.multinomial(weights[i], num_samples=num_samples, replacement=True).transpose_(0, 1) for i in range(len(logits))])
+        samples = tuple([torch.multinomial(weights[i], num_samples=num_samples,
+                                           replacement=True).transpose_(0, 1) for i in range(len(logits))])
         return list(zip(*samples))
 
-    def loss(self, *logits):
+    def loss(self, *logits, **kwargs):
 
         samples = self.sample(logits, self.num_samples)
 
@@ -50,5 +51,6 @@ class WeightedSamplingSolver(SamplingSolver):
 
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
 
-        samples = tuple([torch.multinomial(probs[i], num_samples=num_samples, replacement=True).transpose_(0, 1) for i in range(len(logits))])
+        samples = tuple([torch.multinomial(probs[i], num_samples=num_samples,
+                                           replacement=True).transpose_(0, 1) for i in range(len(logits))])
         return list(zip(*samples))
