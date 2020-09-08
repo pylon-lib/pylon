@@ -30,6 +30,9 @@ def two_vars_assign(x, y):
     return v
 
 
+def forall_list(y): return all([y[0]])
+
+
 @pytest.fixture
 def parses():
     return [
@@ -44,7 +47,8 @@ def parses():
         (y0, Subscript(Arg('y', 0), Const(0))),
         (two_vars, IsEq(Subscript(Arg('x', 0), Const(0)), Subscript(Arg('y', 1), Const(1)))),
         (x_implies_y, Implication(Subscript(Arg('x', 0), Const(0)),
-                                  Subscript(Arg('y', 1), Const(1))))
+                                  Subscript(Arg('y', 1), Const(1)))),
+        (forall_list, Forall(List([Subscript(Arg('y', 0), Const(0))])))
     ]
 
 

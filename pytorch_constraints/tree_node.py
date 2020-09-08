@@ -1,3 +1,4 @@
+import torch
 
 
 class TreeNode:
@@ -79,6 +80,22 @@ class Const(TreeNode):
         return self if self.is_bool else Const(bool(self.value))
 
 
+class Forall(TreeNode):
+    def __init__(self, expr):
+        self.expr = expr
+        super().__init__("ForAll", [expr])
+
+
+class List(TreeNode):
+    def __init__(self, elts):
+        self.elts = elts
+        super().__init__("[" + ",".join([str(e) for e in elts]) + "]", elts)
+
+    def prob_true(self, probs):
+        elt_probs = torch.stack([elt.prob_true(probs) for elt in self.elts])
+        return elt_probs
+
+
 class Tensor(TreeNode):
     '''A lazy Tensor, used in the expression.'''
 
@@ -105,6 +122,10 @@ class Subscript(Tensor):
 
     def probs(self, probs):
         return probs[self.arg.arg_pos][self.index]
+
+    def prob_true(self, probs):
+        # assume 0 is false
+        return 1.0 - self.probs(probs)[0]
 
 
 class IdentifierDef(TreeNode):

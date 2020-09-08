@@ -90,6 +90,17 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         self.iddefs[id] = iddef
         return iddef
 
+    def visit_List(self, node):
+        elts = [self.visit(elt) for elt in node.elts]
+        print(elts)
+        return List(elts)
+
+    def visit_Call(self, node):
+        fname = node.func.id
+        if fname == 'all':
+            return Forall(self.visit(node.args[0]))
+        raise NotImplementedError(node)
+
     def visit_NameConstant(self, node):
         #deprecated in 3.8
         return Const(node.value)

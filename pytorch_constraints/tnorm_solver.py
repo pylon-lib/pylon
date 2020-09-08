@@ -41,8 +41,10 @@ class ProductTNormVisitor(TreeNodeVisitor):
         return 1.0 if node.value else 0.0
 
     def visit_Subscript(self, node, probs):
-        # assume 0 is false
-        return 1.0 - node.probs(probs)[0]
+        return node.prob_true(probs)
+
+    def visit_Forall(self, node, probs):
+        return node.expr.prob_true(probs).prod()
 
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)
@@ -79,9 +81,6 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
         # min(1, 1 - lv + rv) = 1 - relu(lv - rv)
         return 1 - torch.relu(lv - rv)
 
-    def visit_SigmoidalImplication(self, node, probs):
-        return sigmoidal_implication(self.visit_Implication, node, probs)
-
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
 
@@ -92,8 +91,10 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
         return 1.0 if node.value else 0.0
 
     def visit_Subscript(self, node, probs):
-        # assume 0 is false
-        return 1.0 - node.probs(probs)[0]
+        return node.prob_true(probs)
+
+    def visit_Forall(self, node, probs):
+        return node.expr.prob_true(probs).min()
 
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)
@@ -128,9 +129,6 @@ class GodelTNormVisitor(TreeNodeVisitor):
         rv_geq_lv = (rv >= lv).to(lv)
         return rv_geq_lv + (1 - rv_geq_lv) * rv
 
-    def visit_SigmoidalImplication(self, node, probs):
-        return sigmoidal_implication(self.visit_Implication, node, probs)
-
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
 
@@ -141,8 +139,10 @@ class GodelTNormVisitor(TreeNodeVisitor):
         return 1.0 if node.value else 0.0
 
     def visit_Subscript(self, node, probs):
-        # assume 0 is false
-        return 1.0 - node.probs(probs)[0]
+        return node.prob_true(probs)
+
+    def visit_Forall(self, node, probs):
+        return node.expr.prob_true(probs).min()
 
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)
