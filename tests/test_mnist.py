@@ -36,7 +36,7 @@ class Net(nn.Module):
         
         return x.reshape(10,2)
     
-def train(constraint=None, epoch=100):
+def train(constraint=None, epoch=200):
     
     net = Net()
     X, y = get_mnist_data()
