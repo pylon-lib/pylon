@@ -99,6 +99,8 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         fname = node.func.id
         if fname == 'all':
             return Forall(self.visit(node.args[0]))
+        if fname == 'any':
+            return Exists(self.visit(node.args[0]))
         raise NotImplementedError(node)
 
     def visit_NameConstant(self, node):

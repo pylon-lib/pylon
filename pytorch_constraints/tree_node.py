@@ -86,6 +86,12 @@ class Forall(TreeNode):
         super().__init__("ForAll", [expr])
 
 
+class Exists(TreeNode):
+    def __init__(self, expr):
+        self.expr = expr
+        super().__init__("Exists", [expr])
+
+
 class List(TreeNode):
     def __init__(self, elts):
         self.elts = elts

@@ -19,6 +19,9 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
     def visit_List(self, node, probs):
         return torch.stack([self.visit(elt, probs) for elt in node.elts])
 
+    def visit_Exists(self, node, probs):
+        return self.visit(Not(Forall(Not(node.expr))), probs)
+
     def visit_IsEq(self, node, probs):
         if isinstance(node.left, Subscript) and isinstance(node.right, Const):
             return node.left.probs(probs)[node.right.value]
