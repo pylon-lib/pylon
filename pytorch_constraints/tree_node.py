@@ -79,15 +79,32 @@ class Const(TreeNode):
         return self if self.is_bool else Const(bool(self.value))
 
 
-class VarUse(TreeNode):
-    def __init__(self, varidx, varname, index):
-        self.varidx = varidx
-        self.varname = varname
-        self.index = index
-        super().__init__(self.varname + '[' + str(self.index) + "]", [])
+class Tensor(TreeNode):
+    '''A lazy Tensor, used in the expression.'''
+
+    def __init__(self, name, children):
+        super().__init__(name, children)
+
+
+class Arg(Tensor):
+    '''Use one of the arguments of the constraint, such as "x".'''
+
+    def __init__(self, name, pos):
+        self.arg_pos = pos
+        self.arg_name = name
+        super().__init__(self.arg_name, [])
+
+
+class Subscript(Tensor):
+    '''Use a subscript to select elements, such as "x[0]".'''
+
+    def __init__(self, arg, index):
+        self.arg = arg
+        self.index = index.value  # currently a Const, assume integer
+        super().__init__(str(arg) + '[' + str(self.index) + "]", [])
 
     def probs(self, probs):
-        return probs[self.varidx][self.index]
+        return probs[self.arg.arg_pos][self.index]
 
 
 class IdentifierDef(TreeNode):

@@ -38,12 +38,13 @@ def parses():
         (const0, Const(False)),
         (const1, Const(True)),
         (equals1_2, IsEq(Const(1), Const(2))),
-        (y_eq_const, IsEq(VarUse(0, 'y', 0), Const(0))),
-        (const_eq_y, IsEq(Const(0), VarUse(0, 'y', 0))),
-        (var_eq_var, IsEq(VarUse(0, 'y', 0), VarUse(0, 'y', 1))),
-        (y0, VarUse(0, 'y', 0)),
-        (two_vars, IsEq(VarUse(0, 'x', 0), VarUse(1, 'y', 1))),
-        (x_implies_y, Implication(VarUse(0, 'x', 0), VarUse(1, 'y', 1))),
+        (y_eq_const, IsEq(Subscript(Arg('y', 0), Const(0)), Const(0))),
+        (const_eq_y, IsEq(Const(0), Subscript(Arg('y', 0), Const(0)))),
+        (var_eq_var, IsEq(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
+        (y0, Subscript(Arg('y', 0), Const(0))),
+        (two_vars, IsEq(Subscript(Arg('x', 0), Const(0)), Subscript(Arg('y', 1), Const(1)))),
+        (x_implies_y, Implication(Subscript(Arg('x', 0), Const(0)),
+                                  Subscript(Arg('y', 1), Const(1))))
     ]
 
 

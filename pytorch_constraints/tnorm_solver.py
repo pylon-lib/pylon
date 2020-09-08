@@ -22,20 +22,17 @@ class ProductTNormVisitor(TreeNodeVisitor):
         # min(1, rv / lv) = 1 - relu(1 - rv / lv)
         return 1 - torch.relu(1 - rv / lv)
 
-    def visit_SigmoidalImplication(self, node, probs):
-        return sigmoidal_implication(self.visit_Implication, node, probs)
-
     def visit_Not(self, node, probs):
         return 1.0 - self.visit(node.operand, probs)
 
     def visit_IsEq(self, node, probs):
-        if isinstance(node.left, VarUse) and isinstance(node.right, Const):
+        if isinstance(node.left, Subscript) and isinstance(node.right, Const):
             return node.left.probs(probs)[node.right.value]
-        elif isinstance(node.left, Const) and isinstance(node.right, VarUse):
+        elif isinstance(node.left, Const) and isinstance(node.right, Subscript):
             return node.right.probs(probs)[node.left.value]
         elif isinstance(node.left, Const) and isinstance(node.right, Const):
             return 1.0 if node.left.value == node.right.value else 0.0
-        elif isinstance(node.left, VarUse) and isinstance(node.right, VarUse):
+        elif isinstance(node.left, Subscript) and isinstance(node.right, Subscript):
             return (node.left.probs(probs)*node.right.probs(probs)).sum()
         else:
             raise NotImplementedError
@@ -43,7 +40,7 @@ class ProductTNormVisitor(TreeNodeVisitor):
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
 
-    def visit_VarUse(self, node, probs):
+    def visit_Subscript(self, node, probs):
         # assume 0 is false
         return 1.0 - node.probs(probs)[0]
 
@@ -94,7 +91,7 @@ class LukasiewiczTNormVisitor(TreeNodeVisitor):
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
 
-    def visit_VarUse(self, node, probs):
+    def visit_Subscript(self, node, probs):
         # assume 0 is false
         return 1.0 - node.probs(probs)[0]
 
@@ -143,7 +140,7 @@ class GodelTNormVisitor(TreeNodeVisitor):
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
 
-    def visit_VarUse(self, node, probs):
+    def visit_Subscript(self, node, probs):
         # assume 0 is false
         return 1.0 - node.probs(probs)[0]
 

@@ -64,10 +64,22 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         opr = self.visit(node.operand)
         return op_func(opr)
 
+    def visit_Name(self, node):
+        # identify whether it is a local variable or an argument
+        if node.id in self.iddefs:
+            # assumes unscripted reference is to local variable
+            iddef = self.iddefs[node.id]
+            return IdentifierRef(iddef)
+        else:
+            assert node.id in self.arg_pos
+            arg_name = node.id
+            arg_pos = self.arg_pos[node.id]
+            return Arg(arg_name, arg_pos)
+
     def visit_Subscript(self, node):
-        # TODO check node.value is the variable?
-        varidx = self.arg_pos[node.value.id]
-        return VarUse(varidx, node.value.id, node.slice.value.n)
+        arg = self.visit(node.value)
+        select = self.visit(node.slice.value)
+        return Subscript(arg, select)
 
     def visit_Assign(self, node):
         assert len(node.targets) == 1
@@ -77,11 +89,6 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         assert id not in self.iddefs
         self.iddefs[id] = iddef
         return iddef
-
-    def visit_Name(self, node):
-        # assumes unscripted reference is to local variable
-        iddef = self.iddefs[node.id]
-        return IdentifierRef(iddef)
 
     def visit_NameConstant(self, node):
         #deprecated in 3.8
