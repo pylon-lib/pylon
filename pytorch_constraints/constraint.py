@@ -11,7 +11,12 @@ class BaseConstraint:
         self.solver.set_cond(cond)
 
     def loss(self, *logits, **kwargs):
-        return self.solver.loss(*logits)
+        l = self.solver.loss(*logits)
+        if len(l.shape) == 1:
+            l = l[0]
+        if len(l.shape) == 2:
+            l = l[0, 0]
+        return l
 
     def __call__(self, *logits, **kwargs):
         '''Return the differentiable loss for the constraint given the logits of the variables.'''

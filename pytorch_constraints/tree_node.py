@@ -126,7 +126,7 @@ class Subscript(Tensor):
         super().__init__(str(arg) + '[' + str(self.index) + "]", [])
 
     def probs(self, probs):
-        return probs[self.arg.arg_pos][self.index]
+        return probs[self.arg.arg_pos][[self.index], :]
 
 
 class IdentifierDef(TreeNode):

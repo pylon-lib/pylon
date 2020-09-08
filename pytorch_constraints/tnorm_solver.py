@@ -14,7 +14,7 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
 
     def visit_Subscript(self, node, probs):
         # assume 0 is false
-        return 1.0 - node.probs(probs)[0]
+        return 1.0 - node.probs(probs)[:, 0]
 
     def visit_List(self, node, probs):
         return torch.stack([self.visit(elt, probs) for elt in node.elts])
@@ -26,13 +26,13 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
         return 1.0 - node.probs(probs)[:, 0]
 
     def visit_IsEq(self, node, probs):
-        if isinstance(node.left, Subscript) and isinstance(node.right, Const):
-            return node.left.probs(probs)[node.right.value]
-        elif isinstance(node.left, Const) and isinstance(node.right, Subscript):
-            return node.right.probs(probs)[node.left.value]
+        if isinstance(node.left, Tensor) and isinstance(node.right, Const):
+            return node.left.probs(probs)[:, [node.right.value]]
+        elif isinstance(node.left, Const) and isinstance(node.right, Tensor):
+            return node.right.probs(probs)[:, [node.left.value]]
         elif isinstance(node.left, Const) and isinstance(node.right, Const):
             return 1.0 if node.left.value == node.right.value else 0.0
-        elif isinstance(node.left, Subscript) and isinstance(node.right, Subscript):
+        elif isinstance(node.left, Tensor) and isinstance(node.right, Tensor):
             return (node.left.probs(probs)*node.right.probs(probs)).sum()
         else:
             raise NotImplementedError
