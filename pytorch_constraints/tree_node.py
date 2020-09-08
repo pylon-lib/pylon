@@ -113,6 +113,9 @@ class Arg(Tensor):
         self.arg_name = name
         super().__init__(self.arg_name, [])
 
+    def probs(self, probs):
+        return probs[self.arg_pos]
+
 
 class Subscript(Tensor):
     '''Use a subscript to select elements, such as "x[0]".'''

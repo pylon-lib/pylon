@@ -22,6 +22,9 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
     def visit_Exists(self, node, probs):
         return self.visit(Not(Forall(Not(node.expr))), probs)
 
+    def visit_Arg(self, node, probs):
+        return 1.0 - node.probs(probs)[:, 0]
+
     def visit_IsEq(self, node, probs):
         if isinstance(node.left, Subscript) and isinstance(node.right, Const):
             return node.left.probs(probs)[node.right.value]
