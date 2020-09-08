@@ -19,6 +19,12 @@ def y_eq_const(y): return y[0] == 0
 def const_eq_y(y): return 0 == y[0]
 def var_eq_var(y): return y[0] == y[1]
 def y0(y): return y[0]
+def oper_not(y): return not y[0]
+def oper_and(y): return y[0] and y[1]
+def oper_or(y): return y[0] or y[1]
+def attr_not(y): return y[0].logical_not()
+def attr_and(y): return y[0].logical_and(y[1])
+def attr_or(y): return y[0].logical_or(y[1])
 
 
 def two_vars(x, y): return x[0] == y[1]
@@ -34,6 +40,10 @@ def forall_list(y): return all([y[0]])
 def exists_list(y): return any([y[0]])
 
 
+def forall_var(y): return all(y)
+def exists_var(y): return any(y)
+
+
 @pytest.fixture
 def parses():
     return [
@@ -46,11 +56,19 @@ def parses():
         (const_eq_y, IsEq(Const(0), Subscript(Arg('y', 0), Const(0)))),
         (var_eq_var, IsEq(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
         (y0, Subscript(Arg('y', 0), Const(0))),
+        (oper_not, Not(Subscript(Arg('y', 0), Const(0)))),
+        (attr_not, Not(Subscript(Arg('y', 0), Const(0)))),
+        (oper_and, And(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
+        (attr_and, And(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
+        (oper_or, Or(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
+        (attr_or, Or(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
         (two_vars, IsEq(Subscript(Arg('x', 0), Const(0)), Subscript(Arg('y', 1), Const(1)))),
         (x_implies_y, Implication(Subscript(Arg('x', 0), Const(0)),
                                   Subscript(Arg('y', 1), Const(1)))),
         (forall_list, Forall(List([Subscript(Arg('y', 0), Const(0))]))),
-        (exists_list, Exists(List([Subscript(Arg('y', 0), Const(0))])))
+        (exists_list, Exists(List([Subscript(Arg('y', 0), Const(0))]))),
+        (forall_var, Forall(Arg('y', 0))),
+        (exists_var, Exists(Arg('y', 0)))
     ]
 
 

@@ -96,11 +96,22 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         return List(elts)
 
     def visit_Call(self, node):
-        fname = node.func.id
-        if fname == 'all':
-            return Forall(self.visit(node.args[0]))
-        if fname == 'any':
-            return Exists(self.visit(node.args[0]))
+        if isinstance(node.func, ast.Name):
+            fname = node.func.id
+            if fname == 'all':
+                return Forall(self.visit(node.args[0]))
+            if fname == 'any':
+                return Exists(self.visit(node.args[0]))
+            if fname == 'all':
+                return Forall(self.visit(node.args[0]))
+        elif isinstance(node.func, ast.Attribute):
+            fname = node.func.attr
+            if fname == 'logical_not':
+                return Not(self.visit(node.func.value))
+            if fname == 'logical_and':
+                return And(self.visit(node.func.value), self.visit(node.args[0]))
+            if fname == 'logical_or':
+                return Or(self.visit(node.func.value), self.visit(node.args[0]))
         raise NotImplementedError(node)
 
     def visit_NameConstant(self, node):
