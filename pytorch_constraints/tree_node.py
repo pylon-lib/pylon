@@ -91,10 +91,6 @@ class List(TreeNode):
         self.elts = elts
         super().__init__("[" + ",".join([str(e) for e in elts]) + "]", elts)
 
-    def prob_true(self, probs):
-        elt_probs = torch.stack([elt.prob_true(probs) for elt in self.elts])
-        return elt_probs
-
 
 class Tensor(TreeNode):
     '''A lazy Tensor, used in the expression.'''
@@ -122,10 +118,6 @@ class Subscript(Tensor):
 
     def probs(self, probs):
         return probs[self.arg.arg_pos][self.index]
-
-    def prob_true(self, probs):
-        # assume 0 is false
-        return 1.0 - self.probs(probs)[0]
 
 
 class IdentifierDef(TreeNode):
