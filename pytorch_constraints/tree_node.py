@@ -95,17 +95,10 @@ class Exists(TreeNode):
 class List(TreeNode):
     def __init__(self, elts):
         self.elts = elts
-        super().__init__("[" + ",".join([str(e) for e in elts]) + "]", elts)
+        super().__init__("List", elts)
 
 
-class Tensor(TreeNode):
-    '''A lazy Tensor, used in the expression.'''
-
-    def __init__(self, name, children):
-        super().__init__(name, children)
-
-
-class Arg(Tensor):
+class Arg(TreeNode):
     '''Use one of the arguments of the constraint, such as "x".'''
 
     def __init__(self, name, pos):
@@ -117,15 +110,32 @@ class Arg(Tensor):
         return probs[self.arg_pos]
 
 
-class Subscript(Tensor):
+class VarList(TreeNode):
     '''Use a subscript to select elements, such as "x[0]".'''
 
-    def __init__(self, arg, index):
+    def __init__(self, arg, indices):
         self.arg = arg
-        self.index = index.value  # currently a Const, assume integer
-        super().__init__(str(arg) + '[' + str(self.index) + "]", [])
+        self.indices = indices  # currently a Const, assume integer
+        super().__init__(str(arg) + '[' + str(self.indices) + "]", [])
+
+    def subselect_vars(): return True
 
     def probs(self, probs):
+        return probs[self.arg.arg_pos][self.indices, :]
+
+
+class VarCond(TreeNode):
+    '''Uses a boolean expression to select elements, such as "y[x==2]"'''
+
+    def __init__(self, arg, expr):
+        self.arg = arg
+        self.expr = expr  # currently a Const, assume integer
+        super().__init__(str(arg) + '[' + str(self.expr) + "]", [])
+
+    def subselect_vars(): return False
+
+    def probs(self, probs):
+        # TODO: implement expr => arg
         return probs[self.arg.arg_pos][[self.index], :]
 
 

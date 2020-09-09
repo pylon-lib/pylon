@@ -44,6 +44,9 @@ def forall_var(y): return all(y)
 def exists_var(y): return any(y)
 
 
+def forall_cond(x, y): return all(y[x == 2])
+
+
 @pytest.fixture
 def parses():
     return [
@@ -52,21 +55,21 @@ def parses():
         (const0, Const(False)),
         (const1, Const(True)),
         (equals1_2, IsEq(Const(1), Const(2))),
-        (y_eq_const, IsEq(Subscript(Arg('y', 0), Const(0)), Const(0))),
-        (const_eq_y, IsEq(Const(0), Subscript(Arg('y', 0), Const(0)))),
-        (var_eq_var, IsEq(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
-        (y0, Subscript(Arg('y', 0), Const(0))),
-        (oper_not, Not(Subscript(Arg('y', 0), Const(0)))),
-        (attr_not, Not(Subscript(Arg('y', 0), Const(0)))),
-        (oper_and, And(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
-        (attr_and, And(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
-        (oper_or, Or(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
-        (attr_or, Or(Subscript(Arg('y', 0), Const(0)), Subscript(Arg('y', 0), Const(1)))),
-        (two_vars, IsEq(Subscript(Arg('x', 0), Const(0)), Subscript(Arg('y', 1), Const(1)))),
-        (x_implies_y, Implication(Subscript(Arg('x', 0), Const(0)),
-                                  Subscript(Arg('y', 1), Const(1)))),
-        (forall_list, Forall(List([Subscript(Arg('y', 0), Const(0))]))),
-        (exists_list, Exists(List([Subscript(Arg('y', 0), Const(0))]))),
+        (y_eq_const, IsEq(VarList(Arg('y', 0), Const(0)), Const(0))),
+        (const_eq_y, IsEq(Const(0), VarList(Arg('y', 0), Const(0)))),
+        (var_eq_var, IsEq(VarList(Arg('y', 0), Const(0)), VarList(Arg('y', 0), Const(1)))),
+        (y0, VarList(Arg('y', 0), Const(0))),
+        (oper_not, Not(VarList(Arg('y', 0), Const(0)))),
+        (attr_not, Not(VarList(Arg('y', 0), Const(0)))),
+        (oper_and, And(VarList(Arg('y', 0), Const(0)), VarList(Arg('y', 0), Const(1)))),
+        (attr_and, And(VarList(Arg('y', 0), Const(0)), VarList(Arg('y', 0), Const(1)))),
+        (oper_or, Or(VarList(Arg('y', 0), Const(0)), VarList(Arg('y', 0), Const(1)))),
+        (attr_or, Or(VarList(Arg('y', 0), Const(0)), VarList(Arg('y', 0), Const(1)))),
+        (two_vars, IsEq(VarList(Arg('x', 0), Const(0)), VarList(Arg('y', 1), Const(1)))),
+        (x_implies_y, Implication(VarList(Arg('x', 0), Const(0)),
+                                  VarList(Arg('y', 1), Const(1)))),
+        (forall_list, Forall(List([VarList(Arg('y', 0), Const(0))]))),
+        (exists_list, Exists(List([VarList(Arg('y', 0), Const(0))]))),
         (forall_var, Forall(Arg('y', 0))),
         (exists_var, Exists(Arg('y', 0)))
     ]

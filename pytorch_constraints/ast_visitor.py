@@ -79,7 +79,13 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
     def visit_Subscript(self, node):
         arg = self.visit(node.value)
         select = self.visit(node.slice.value)
-        return Subscript(arg, select)
+        if isinstance(select, Const):
+            return VarList(arg, [select.value])
+        elif isinstance(select, List):
+            assert all([isinstance(e, Const) for e in select.elts])
+            return VarList(arg, [e.value for e in select.elts])
+        else:
+            return VarCond(arg, select)
 
     def visit_Assign(self, node):
         assert len(node.targets) == 1
@@ -92,7 +98,6 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
 
     def visit_List(self, node):
         elts = [self.visit(elt) for elt in node.elts]
-        print(elts)
         return List(elts)
 
     def visit_Call(self, node):

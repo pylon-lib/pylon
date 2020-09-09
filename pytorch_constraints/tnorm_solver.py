@@ -12,7 +12,7 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
     def visit_Constant(self, node, probs):
         return 1.0 if node.value else 0.0
 
-    def visit_Subscript(self, node, probs):
+    def visit_VarList(self, node, probs):
         # assume 0 is false
         return 1.0 - node.probs(probs)[:, 0]
 
@@ -26,16 +26,25 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
         return 1.0 - node.probs(probs)[:, 0]
 
     def visit_IsEq(self, node, probs):
-        if isinstance(node.left, Tensor) and isinstance(node.right, Const):
-            return node.left.probs(probs)[:, [node.right.value]]
-        elif isinstance(node.left, Const) and isinstance(node.right, Tensor):
-            return node.right.probs(probs)[:, [node.left.value]]
-        elif isinstance(node.left, Const) and isinstance(node.right, Const):
+
+        def is_constant(n): return isinstance(n, Const)
+        def is_subselect(n): return isinstance(n, Arg) or isinstance(n, VarList)
+        def is_cond(n): return isinstance(n, VarCond)
+
+        (l_const, r_const) = (is_constant(node.left), is_constant(node.right))
+        if l_const and r_const:
             return 1.0 if node.left.value == node.right.value else 0.0
-        elif isinstance(node.left, Tensor) and isinstance(node.right, Tensor):
+
+        (l_subsel, r_subsel) = (is_subselect(node.left), is_subselect(node.right))
+        if l_subsel and r_subsel:
             return (node.left.probs(probs)*node.right.probs(probs)).sum()
-        else:
-            raise NotImplementedError
+
+        if (l_const and r_subsel) or (r_const and l_subsel):
+            subsel = node.right if r_subsel else node.left
+            const = node.right if r_const else node.left
+            return subsel.probs(probs)[:, [const.value]]
+
+        raise NotImplementedError
 
     def visit_IdentifierRef(self, node, probs):
         return self.visit(node.iddef.definition, probs)
@@ -70,7 +79,9 @@ class ProductTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        return -ProductTNormVisitor().visit(self.bool_tree, probs).log()
+        tree_prob = ProductTNormVisitor().visit(self.bool_tree, probs)
+        # print(tree_prob)
+        return -tree_prob.log()
 
 
 class LukasiewiczTNormVisitor(TNormTreeNodeVisitor):

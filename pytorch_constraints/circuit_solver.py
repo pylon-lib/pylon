@@ -64,10 +64,12 @@ class SddVisitor(TreeNodeVisitor):
     def visit_FunDef(self, node, mgr):
         return self.visit(node.return_node, mgr)
 
-    def visit_Subscript(self, node, mgr):
+    def visit_VarList(self, node, mgr):
+        if len(node.indices) > 1:
+            raise NotImplementedError
         if node.arg.arg_pos != 0:
             raise NotImplementedError
         else:
-            while mgr.var_count() < node.index+1:
+            while mgr.var_count() < node.indices[0]+1:
                 mgr.add_var_after_last()
-            return mgr.literal(node.index+1)
+            return mgr.literal(node.indices[0]+1)
