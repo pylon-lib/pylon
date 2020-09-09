@@ -71,12 +71,16 @@ class RE_Net(torch.nn.Module):
 
         return s
     
-def OrgBasedIn_Org_Loc(ne, re):
+def OrgBasedIn_Org_Loc(ne_batch, re_batch):
     
-    arg1 = (re==3).nonzero(as_tuple=False)
-    arg2 = (re==8).nonzero(as_tuple=False)
-    
-    return (ne[arg1] == 2).all() and (ne[arg2] == 1).all()
+    out = []
+    for ne, re in zip(ne_batch, re_batch): 
+        arg1 = (re==3).nonzero(as_tuple=False)
+        arg2 = (re==8).nonzero(as_tuple=False)
+
+        out +=  [all(ne[arg1] == 2) and all(ne[arg2] == 1)]
+        
+    return torch.tensor(out)
 
 def train(constraint):
     
@@ -91,12 +95,10 @@ def train(constraint):
         opt.zero_grad()
 
         ner_logits = ner(tokens)
-        ner_logits = ner_logits.view(-1, ner_logits.shape[2])
 
         re_logits = re(tokens)
-        re_logits = re_logits.view(-1, re_logits.shape[2])
 
-        re_loss = F.cross_entropy(re_logits, relations.view(-1))
+        re_loss = F.cross_entropy(re_logits.view(-1, re_logits.shape[2]), relations.view(-1))
         closs = constraint(ner_logits, re_logits)
         loss = 0.05 * closs + 10 * re_loss 
 
@@ -109,6 +111,10 @@ def train(constraint):
 def test_entity_relation():
     
     tokens, entities, relations = get_data()
+    tokens = torch.cat((tokens, tokens, tokens))
+    entities = torch.cat((entities, entities, entities))
+    relations = torch.cat((relations, relations, relations))
+
     for solver in get_solvers(num_samples=200):
         
         cons = constraint(OrgBasedIn_Org_Loc, solver)

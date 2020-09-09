@@ -10,10 +10,15 @@ class BruteForceSolver(Solver):
 
     def all_samples(self, log_probs):
         '''All possible decodings from the `log_probs` Tensor.'''
-        vals = [list(itertools.product(
-            range(log_probs[i].shape[1]), repeat=log_probs[i].shape[0]))
-            for i in range(len(log_probs))]
-        yield from itertools.product(*tuple(vals))
+
+        vals = tuple(
+                torch.cartesian_prod(
+                    *[torch.tensor(range(log_probs[i].shape[-1]))] * log_probs[i].shape[-2]
+                )
+                for i in range(len(log_probs))
+               )
+
+        return list(itertools.product(*vals))
 
     def filter(self, value):
         '''Which variable values should we compute the loss over.'''
@@ -25,8 +30,24 @@ class BruteForceSolver(Solver):
 
     def loss(self, *logits):
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
-        samples = filter(self.filter, self.all_samples(log_probs))
-        losses = map(lambda values: decoding_loss(values, log_probs), samples)
+
+        #TODO: The below is a hack to get the xor examples to work
+        # What should be the expectation in this case?
+        if len(log_probs[0].shape) == 2:
+            log_probs = [log_probs[i].reshape(1, *log_probs[i].shape) for i in range(len(logits))]
+
+        samples = []
+        for sample in self.all_samples(log_probs):
+            if self.filter(sample):
+                samples += [
+                            tuple(
+                                torch.stack([sample[i]] * log_probs[i].shape[0]) for i in range(len(logits))
+                            )
+                           ]
+
+        #samples = filter(self.filter, self.all_samples(log_probs))
+        #losses = map(lambda values: decoding_loss(values, log_probs), samples)
+        losses = [decoding_loss(sample, log_probs) for sample in samples]
         return self.reduce(losses)
 
 

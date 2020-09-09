@@ -25,17 +25,30 @@ class SamplingSolver(Solver):
 
     def loss(self, *logits):
 
+        shapes = [logits[i].shape for i in range(len(logits))]
+        for i in range(len(logits)):
+            #TODO: add logits= to the following line
+            logits[i].reshape(-1, shapes[i][-1])
+
         samples = self.sample(logits, self.num_samples)
 
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
 
-        satis_losses = tuple(map(lambda sample: decoding_loss(sample, log_probs),
-                                 [s for s in samples if self.cond(*s)]))
+        indices = [torch.tensor(data=self.cond(*sample), dtype=bool) for sample in samples]
+
+        llogits = len(logits) 
+
+        satis_losses = [decoding_loss(tuple(sample[i][indices[j]] for i in range(llogits)),\
+                tuple(log_probs[i][indices[j]] for i in range(llogits))) for j, sample in enumerate(samples)\
+                if indices[j].any()]
+
+        viol_losses = [decoding_loss(tuple(sample[i][~indices[j]] for i in range(llogits)),\
+                tuple(log_probs[i][~indices[j]] for i in range(llogits))) for j, sample in enumerate(samples)\
+                if not indices[j].all()]
+
         satis_loss = torch.stack(satis_losses).logsumexp(dim=0)\
             if satis_losses else torch.tensor(0.0)
 
-        viol_losses = tuple(map(lambda sample: decoding_loss(sample, log_probs),
-                                [s for s in samples if not self.cond(*s)]))
         viol_loss = torch.stack(viol_losses).logsumexp(dim=0)\
             if viol_losses else torch.tensor(0.0)
 
@@ -48,7 +61,11 @@ class WeightedSamplingSolver(SamplingSolver):
     def sample(self, logits, num_samples):
         '''Sample a decoding of variables from a multinomial distribution parameterized by network probabilities'''
 
+        shapes = [logits[i].shape for i in range(len(logits))]
+        logits = [logits[i].reshape(-1, shapes[i][-1]) for i in range(len(logits))]
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
 
         samples = tuple([torch.multinomial(probs[i], num_samples=num_samples, replacement=True).transpose_(0, 1) for i in range(len(logits))])
+        samples = [sample.reshape(num_samples, *shapes[i][:-1]) for i, sample in enumerate(samples)]
+
         return list(zip(*samples))
