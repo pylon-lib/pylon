@@ -44,6 +44,12 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
             const = node.right if r_const else node.left
             return subsel.probs(probs)[:, [const.value]]
 
+        (l_cond, r_cond) = (is_cond(node.left), is_cond(node.right))
+        if (r_cond and l_const) or (r_const and l_cond):
+            cond = node.right if r_cond else node.left
+            const = node.right if r_const else node.left
+            return self.visit(Or(Not(cond.expr), IsEq(cond.arg, const)), probs)
+
         raise NotImplementedError
 
     def visit_IdentifierRef(self, node, probs):
@@ -80,7 +86,6 @@ class ProductTNormLogicSolver(ASTLogicSolver):
     def loss(self, *logits, **kwargs):
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
         tree_prob = ProductTNormVisitor().visit(self.bool_tree, probs)
-        # print(tree_prob)
         return -tree_prob.log()
 
 

@@ -115,10 +115,9 @@ class VarList(TreeNode):
 
     def __init__(self, arg, indices):
         self.arg = arg
-        self.indices = indices  # currently a Const, assume integer
+        self.indices = indices
+        # super().__init__(str(arg) + '[' + ",".join([str(i) for i in self.indices]) + "]", [])
         super().__init__(str(arg) + '[' + str(self.indices) + "]", [])
-
-    def subselect_vars(): return True
 
     def probs(self, probs):
         return probs[self.arg.arg_pos][self.indices, :]
@@ -129,14 +128,8 @@ class VarCond(TreeNode):
 
     def __init__(self, arg, expr):
         self.arg = arg
-        self.expr = expr  # currently a Const, assume integer
+        self.expr = expr
         super().__init__(str(arg) + '[' + str(self.expr) + "]", [])
-
-    def subselect_vars(): return False
-
-    def probs(self, probs):
-        # TODO: implement expr => arg
-        return probs[self.arg.arg_pos][[self.index], :]
 
 
 class IdentifierDef(TreeNode):
