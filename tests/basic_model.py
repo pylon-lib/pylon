@@ -32,7 +32,7 @@ def train(net, constraint=None, epoch=100):
         y_logit = net(x)
         loss = F.cross_entropy(y_logit[1:], y[1:])
         if constraint is not None:
-            loss += constraint(y_logit, targets=y)
+            loss += constraint(y_logit)
         loss.backward()
         opt.step()
 
