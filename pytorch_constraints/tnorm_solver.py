@@ -94,7 +94,7 @@ class LukasiewiczTNormVisitor(TNormTreeNodeVisitor):
     def visit_And(self, node, probs):
         lv = self.visit(node.left, probs)
         rv = self.visit(node.right, probs)
-        return torch.min(lv, rv)
+        return torch.relu(lv + rv - 1)
 
     def visit_Or(self, node, probs):
         lv = self.visit(node.left, probs)
