@@ -1,3 +1,4 @@
+import torch
 
 
 class TreeNode:
@@ -47,14 +48,10 @@ class Or(BinaryOp):
     def __init__(self, left, right):
         super().__init__("Or", left, right)
 
-class Residuum(BinaryOp):
-    def __init__(self, left, right):
-        super().__init__("Residuum", left, right)
 
-class SigmoidalImplication(BinaryOp):
-    def __init__(self, left, right, s=1.0):
-        super().__init__("SigmoidalImplication", left, right)
-        self.s = s  # s is an ast.Constant
+class Implication(BinaryOp):
+    def __init__(self, left, right):
+        super().__init__("Implication", left, right)
 
 
 class UnaryOp(TreeNode):
@@ -83,15 +80,56 @@ class Const(TreeNode):
         return self if self.is_bool else Const(bool(self.value))
 
 
-class VarUse(TreeNode):
-    def __init__(self, varidx, varname, index):
-        self.varidx = varidx
-        self.varname = varname
-        self.index = index
-        super().__init__(self.varname + '[' + str(self.index) + "]", [])
+class Forall(TreeNode):
+    def __init__(self, expr):
+        self.expr = expr
+        super().__init__("ForAll", [expr])
+
+
+class Exists(TreeNode):
+    def __init__(self, expr):
+        self.expr = expr
+        super().__init__("Exists", [expr])
+
+
+class List(TreeNode):
+    def __init__(self, elts):
+        self.elts = elts
+        super().__init__("List", elts)
+
+
+class Arg(TreeNode):
+    '''Use one of the arguments of the constraint, such as "x".'''
+
+    def __init__(self, name, pos):
+        self.arg_pos = pos
+        self.arg_name = name
+        super().__init__(self.arg_name, [])
 
     def probs(self, probs):
-        return probs[self.varidx][self.index]
+        return probs[self.arg_pos]
+
+
+class VarList(TreeNode):
+    '''Use a subscript to select elements, such as "x[0]".'''
+
+    def __init__(self, arg, indices):
+        self.arg = arg
+        self.indices = indices
+        # super().__init__(str(arg) + '[' + ",".join([str(i) for i in self.indices]) + "]", [])
+        super().__init__(str(arg) + '[' + str(self.indices) + "]", [])
+
+    def probs(self, probs):
+        return probs[self.arg.arg_pos][self.indices, :]
+
+
+class VarCond(TreeNode):
+    '''Uses a boolean expression to select elements, such as "y[x==2]"'''
+
+    def __init__(self, arg, expr):
+        self.arg = arg
+        self.expr = expr
+        super().__init__(str(arg) + '[' + str(self.expr) + "]", [])
 
 
 class IdentifierDef(TreeNode):

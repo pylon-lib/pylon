@@ -6,6 +6,7 @@ from .solver import ASTLogicSolver
 from .ast_visitor import *
 from pysdd.sdd import SddManager, Vtree, WmcManager
 
+
 class SemanticLossCircuitSolver(ASTLogicSolver):
 
     def loss(self, *logits):
@@ -13,7 +14,7 @@ class SemanticLossCircuitSolver(ASTLogicSolver):
         vtree = Vtree(var_count=1)
         mgr = SddManager.from_vtree(vtree)
         sdd = SddVisitor().visit(self.bool_tree, mgr)
-        return -self.prob(sdd,probs).log()
+        return -self.prob(sdd, probs).log()
 
     # TODO: write a logprob solver that avoids underflow.
     def prob(self, sdd, lit_probs):
@@ -27,12 +28,12 @@ class SemanticLossCircuitSolver(ASTLogicSolver):
             return lit_probs[0][-sdd.literal-1][0]
         elif sdd.is_decision():
             p = 0.0
-            for prime, sub in  sdd.elements():
+            for prime, sub in sdd.elements():
                 p += self.prob(prime, lit_probs) * self.prob(sub, lit_probs)
             return p
         else:
             raise ValueError("unknown type of SDD node")
-            
+
 
 class SddVisitor(TreeNodeVisitor):
 
@@ -63,10 +64,12 @@ class SddVisitor(TreeNodeVisitor):
     def visit_FunDef(self, node, mgr):
         return self.visit(node.return_node, mgr)
 
-    def visit_VarUse(self, node, mgr):
-        if node.varidx != 0:
+    def visit_VarList(self, node, mgr):
+        if len(node.indices) > 1:
+            raise NotImplementedError
+        if node.arg.arg_pos != 0:
             raise NotImplementedError
         else:
-            while mgr.var_count() < node.index+1:
+            while mgr.var_count() < node.indices[0]+1:
                 mgr.add_var_after_last()
-            return mgr.literal(node.index+1)
+            return mgr.literal(node.indices[0]+1)

@@ -64,44 +64,28 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         opr = self.visit(node.operand)
         return op_func(opr)
 
-    def visit_Call(self, node):
-        def attribute_calls(n):
-            if n.func.attr == 'implication':
-                assert(len(n.args) == 1)
-                op_func = lambda x, y: Residuum(x.as_bool(), y.as_bool())
-                return op_func(self.visit(n.func.value), self.visit(n.args[0]))
-            elif n.func.attr == 'sigmoidal_implication':
-                assert(len(n.args) <= 2)
-                op_func = lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
-                s = ast.Constant(1.0)
-
-                if len(n.keywords) != 0: # to support func call like x.sigmoidal_implication(y, s=1.0)
-                    s = next(filter(lambda x: x.arg == 's', n.keywords)).value
-                elif len(n.args) == 2:   # to support func call like x.sigmoidal_implication(y, 1.0)
-                    s = n.args[1]
-
-                assert(isinstance(s, ast.Constant))
-                return op_func(self.visit(n.func.value), self.visit(n.args[0]), s)
-            else:
-                raise Exception('unsupported function call', n.func.attr)
-
-
-            supported_attr = {
-                'implication': lambda x, y: Residuum(x.as_bool(), y.as_bool()), # this is the same as x <= y, i.e. the default implication rule
-                'sigmoidal_implication': lambda x, y, s: SigmoidalImplication(x.as_bool(), y.as_bool(), s)
-            }
-
-        supported_func = {
-            ast.Attribute: attribute_calls
-        }
-
-        func = supported_func[type(node.func)]
-        return func(node)
+    def visit_Name(self, node):
+        # identify whether it is a local variable or an argument
+        if node.id in self.iddefs:
+            # assumes unscripted reference is to local variable
+            iddef = self.iddefs[node.id]
+            return IdentifierRef(iddef)
+        else:
+            assert node.id in self.arg_pos
+            arg_name = node.id
+            arg_pos = self.arg_pos[node.id]
+            return Arg(arg_name, arg_pos)
 
     def visit_Subscript(self, node):
-        # TODO check node.value is the variable?
-        varidx = self.arg_pos[node.value.id]
-        return VarUse(varidx, node.value.id, node.slice.value.n)
+        arg = self.visit(node.value)
+        select = self.visit(node.slice.value)
+        if isinstance(select, Const):
+            return VarList(arg, [select.value])
+        elif isinstance(select, List):
+            assert all([isinstance(e, Const) for e in select.elts])
+            return VarList(arg, [e.value for e in select.elts])
+        else:
+            return VarCond(arg, select)
 
     def visit_Assign(self, node):
         assert len(node.targets) == 1
@@ -112,10 +96,28 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         self.iddefs[id] = iddef
         return iddef
 
-    def visit_Name(self, node):
-        # assumes unscripted reference is to local variable
-        iddef = self.iddefs[node.id]
-        return IdentifierRef(iddef)
+    def visit_List(self, node):
+        elts = [self.visit(elt) for elt in node.elts]
+        return List(elts)
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Name):
+            fname = node.func.id
+            if fname == 'all':
+                return Forall(self.visit(node.args[0]))
+            if fname == 'any':
+                return Exists(self.visit(node.args[0]))
+            if fname == 'all':
+                return Forall(self.visit(node.args[0]))
+        elif isinstance(node.func, ast.Attribute):
+            fname = node.func.attr
+            if fname == 'logical_not':
+                return Not(self.visit(node.func.value))
+            if fname == 'logical_and':
+                return And(self.visit(node.func.value), self.visit(node.args[0]))
+            if fname == 'logical_or':
+                return Or(self.visit(node.func.value), self.visit(node.args[0]))
+        raise NotImplementedError(node)
 
     def visit_NameConstant(self, node):
         #deprecated in 3.8
@@ -141,7 +143,7 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         supported = {
             ast.Eq: (lambda left, right: IsEq(left, right)),
             ast.NotEq: (lambda left, right: Not(IsEq(left, right))),
-            ast.LtE:  (lambda left, right: Residuum(left.as_bool(), right.as_bool()))   # implication/residuum
+            ast.LtE:  (lambda left, right: Implication(left.as_bool(), right.as_bool()))   # implication/residuum
         }
         assert(len(node.ops))
         op_func = supported[type(node.ops[0])]
