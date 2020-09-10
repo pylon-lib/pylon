@@ -11,7 +11,7 @@ class BaseConstraint:
         self.solver.set_cond(cond)
 
     def loss(self, *logits, **kwargs):
-        l = self.solver.loss(*logits)
+        l = self.solver.loss(*logits, **kwargs)
         if len(l.shape) == 1:
             l = l[0]
         if len(l.shape) == 2:
