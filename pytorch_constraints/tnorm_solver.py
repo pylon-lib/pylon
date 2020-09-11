@@ -111,7 +111,8 @@ class LukasiewiczTNormVisitor(TNormTreeNodeVisitor):
         return 1 - torch.relu(lv - rv)
 
     def visit_Forall(self, node, probs):
-        return self.visit(node.expr, probs).min()
+        val = self.visit(node.expr, probs)
+        return torch.relu(val.sum() - val.numel() + 1)
 
 
 class LukasiewiczTNormLogicSolver(ASTLogicSolver):
