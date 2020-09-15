@@ -14,9 +14,7 @@ class BruteForceSolver(Solver):
         vals = tuple(
                 torch.cartesian_prod(
                     *[torch.tensor(range(log_probs[i].shape[-1]))] * log_probs[i].shape[-2]
-                )
-                for i in range(len(log_probs))
-               )
+                ).unsqueeze(1).expand(-1, log_probs[i].shape[0], -1) for i in range(len(log_probs)))
 
         return list(itertools.product(*vals))
 
@@ -29,26 +27,14 @@ class BruteForceSolver(Solver):
         return sum(losses)
 
     def loss(self, *logits, **kwargs):
+
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
+        samples = self.all_samples(log_probs)
 
-        #TODO: The below is a hack to get the xor examples to work
-        # What should be the expectation in this case?
-        if len(log_probs[0].shape) == 2:
-            log_probs = [log_probs[i].reshape(1, *log_probs[i].shape) for i in range(len(logits))]
+        indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
+        losses = torch.stack([decoding_loss(sample, log_probs) for sample in samples])
 
-        samples = []
-        for sample in self.all_samples(log_probs):
-            if self.filter(sample):
-                samples += [
-                            tuple(
-                                torch.stack([sample[i]] * log_probs[i].shape[0]) for i in range(len(logits))
-                            )
-                           ]
-
-        #samples = filter(self.filter, self.all_samples(log_probs))
-        #losses = map(lambda values: decoding_loss(values, log_probs), samples)
-        losses = [decoding_loss(sample, log_probs) for sample in samples]
-        return self.reduce(losses)
+        return -(losses[indices].logsumexp(dim=0) - losses.logsumexp(dim=(0,1)))
 
 
 class SatisfactionBruteForceSolver(BruteForceSolver):
@@ -70,3 +56,8 @@ class ViolationBruteForceSolver(BruteForceSolver):
 
     def reduce(self, losses):
         return torch.stack(tuple(losses)).logsumexp(dim=0)
+
+        ##TODO: The below is a hack to get the xor examples to work
+        ## What should be the expectation in this case?
+        #if len(log_probs[0].shape) == 2:
+        #    log_probs = [log_probs[i].reshape(1, *log_probs[i].shape) for i in range(len(logits))]

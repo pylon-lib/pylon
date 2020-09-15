@@ -38,7 +38,7 @@ def get_tnorm_solvers():
 
 def get_sampling_solvers(num_samples):
     return [
-        SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
+        #SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples)
     ]
 
