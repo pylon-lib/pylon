@@ -37,12 +37,11 @@ class SamplingSolver(Solver):
         # TODO: remove extraneous torch.tensor wrapping. Currently in place for XOR example
         indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
 
+        sat_losses = losses.clone()
+        sat_losses[~indices] = -float('inf')
 
-        #loss = torch.tensor([losses[:, i][indices[:, i]].logsumexp(dim=0) for i in range(log_probs[0].shape[0])]) - losses.logsumexp(dim=0)
-        #return -loss.sum()
-
-        loss = losses[indices].logsumexp(dim=0) - losses.logsumexp(dim=tuple(i for i in range(len(losses.shape))))
-        return -loss
+        loss = sat_losses.logsumexp(dim = 0) - losses.logsumexp(dim=0)
+        return -loss.sum()
 
 class WeightedSamplingSolver(SamplingSolver):
 

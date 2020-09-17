@@ -33,15 +33,15 @@ class BruteForceSolver(Solver):
 
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
         samples = self.all_samples(log_probs)
-
-        indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
         losses = torch.stack([decoding_loss(sample, log_probs) for sample in samples])
 
-        #loss = torch.tensor([losses[:, i][indices[:, i]].logsumexp(dim=0) for i in range(log_probs[0].shape[0])]) - losses.logsumexp(dim=0)
-        #return -loss.sum()
+        indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
 
-        return -(losses[indices].logsumexp(dim=0) - losses.logsumexp(dim=(0,1)))
+        sat_losses = losses.clone()
+        sat_losses[~indices] = -float('inf')
 
+        loss = sat_losses.logsumexp(dim = 0) - losses.logsumexp(dim=0)
+        return -loss.sum()
 
 class SatisfactionBruteForceSolver(BruteForceSolver):
     '''Add a loss that encourages the total probability over all possible decodings that satisfy the constraint.'''
