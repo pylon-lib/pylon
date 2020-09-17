@@ -11,10 +11,13 @@ class BruteForceSolver(Solver):
     def all_samples(self, log_probs):
         '''All possible decodings from the `log_probs` Tensor.'''
 
+        llgprbs = len(log_probs)
+        shapes = [log_probs[i].shape for i in range(len(log_probs))]
+
         vals = tuple(
-                torch.cartesian_prod(
-                    *[torch.tensor(range(log_probs[i].shape[-1]))] * log_probs[i].shape[-2]
-                ).unsqueeze(1).expand(-1, log_probs[i].shape[0], -1) for i in range(len(log_probs)))
+                torch.cartesian_prod(*[torch.tensor(range(shapes[i][-1]))] * shapes[i][-2])\
+                .unsqueeze(1).expand(-1, shapes[i][0] if len(shapes[i]) == 3 else 1, -1).squeeze()\
+                for i in range(llgprbs))
 
         return list(itertools.product(*vals))
 
@@ -33,6 +36,9 @@ class BruteForceSolver(Solver):
 
         indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
         losses = torch.stack([decoding_loss(sample, log_probs) for sample in samples])
+
+        #loss = torch.tensor([losses[:, i][indices[:, i]].logsumexp(dim=0) for i in range(log_probs[0].shape[0])]) - losses.logsumexp(dim=0)
+        #return -loss.sum()
 
         return -(losses[indices].logsumexp(dim=0) - losses.logsumexp(dim=(0,1)))
 
@@ -57,7 +63,3 @@ class ViolationBruteForceSolver(BruteForceSolver):
     def reduce(self, losses):
         return torch.stack(tuple(losses)).logsumexp(dim=0)
 
-        ##TODO: The below is a hack to get the xor examples to work
-        ## What should be the expectation in this case?
-        #if len(log_probs[0].shape) == 2:
-        #    log_probs = [log_probs[i].reshape(1, *log_probs[i].shape) for i in range(len(logits))]
