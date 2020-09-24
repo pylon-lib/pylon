@@ -105,12 +105,20 @@ class ILPSolver(ASTLogicSolver):
     def sample(self, probs):
         return [self.inference(probs), ]
 
-    def loss(self, logits, targets):
+    def loss(self, logits, targets=None):
         probs = torch.softmax(logits, dim=-1)
         samples = self.sample(probs)
         loss = 0
-        for sample in samples:
-            weight = (targets != torch.tensor(sample)).float()
-            targets = torch.stack([1-targets, targets], dim=-1).float()
-            loss += F.binary_cross_entropy_with_logits(logits, targets, weight=weight)
+        if targets is not None:
+            # supervised
+            for sample in samples:
+                weight = (targets != torch.tensor(sample)).float()
+                targets = torch.stack([1-targets, targets], dim=-1).float()
+                loss += F.binary_cross_entropy_with_logits(logits, targets, weight=weight)
+        else:
+            # unsupervised:
+            for sample in samples:
+                targets = torch.tensor(sample)
+                targets = torch.stack([1-targets, targets], dim=-1).float()
+                loss += F.binary_cross_entropy_with_logits(logits, targets)
         return loss
