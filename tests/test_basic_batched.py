@@ -1,4 +1,3 @@
-from .basic_model import net_binary, net_multi, train
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
@@ -6,6 +5,7 @@ from pytorch_constraints.constraint import constraint
 from pytorch_constraints.brute_force_solver import *
 import torch.nn.functional as F
 import torch
+import pytest
 import sys
 sys.path.append('../')
 
@@ -89,3 +89,7 @@ def test_xor_batch():
             assert all(y[:, 1, 0] < 0.25) and all(y[:, 1, 1] > 0.75)
 
         assert success == num_tries
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
