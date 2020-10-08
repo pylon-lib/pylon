@@ -1,17 +1,69 @@
-from .basic_model import net_binary, net_multi, train
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.brute_force_solver import *
+from pytorch_constraints.ilp_solver import ILPSolver
 import torch.nn.functional as F
 import torch
+import pytest
 import sys
 sys.path.append('../')
 
 
+class Net(torch.nn.Module):
+    '''Neural network with a single input (fixed) and two categorical outputs.'''
+
+    def __init__(self, num_labels, w=None):
+        super().__init__()
+        self.num_labels = num_labels
+        if w is not None:
+            self.w = torch.nn.Parameter(
+                torch.tensor(w).float().view(
+                    self.num_labels*2, 1))
+        else:
+            self.w = torch.nn.Parameter(
+                torch.rand(self.num_labels*2, 1))
+
+    def forward(self, x):
+        return torch.matmul(self.w, x).view(2, self.num_labels)
+
+
+def train(net, constraint=None, epoch=100):
+    x = torch.tensor([1.0])
+    y = torch.tensor([0, 1])
+    y0 = F.softmax(net(x), dim=-1)
+    opt = torch.optim.SGD(net.parameters(), lr=0.1)
+
+    for _ in range(100):
+        opt.zero_grad()
+        y_logit = net(x)
+        loss = F.cross_entropy(y_logit[1:], y[1:])
+        if constraint is not None:
+            loss += constraint(y_logit)
+        loss.backward()
+        opt.step()
+
+    return net, y0
+
+
+@pytest.fixture
+def net_binary():
+    net = Net(2)
+    return net
+
+
+@pytest.fixture
+def net_multi():
+    net = Net(3)
+    return net
+
+
+a = {"key": 1}
+
+
 def xor(y):
-    return (y[0] and not y[1]) or (not y[0] and y[1])
+    return (y[0] and not y[a['key']]) or (not y[0] and y[a['key']])
 
 
 def test_basic_binary(net_binary):
@@ -44,7 +96,7 @@ def get_sampling_solvers(num_samples):
 
 
 def get_solvers(num_samples):
-    return get_sampling_solvers(num_samples) + [SemanticLossCircuitSolver()] + get_tnorm_solvers()
+    return get_sampling_solvers(num_samples) + [SemanticLossCircuitSolver(), ILPSolver()] + get_tnorm_solvers()
 
 
 def test_xor_binary(net_binary):
@@ -332,3 +384,7 @@ def test_quant_exists_var(net_binary):
             assert y[1, 1] > 0.8
 
         assert success == num_tries
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

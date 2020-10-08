@@ -1,4 +1,5 @@
 import ast
+import astor
 from functools import reduce
 import torch
 from .tree_node import *
@@ -27,9 +28,13 @@ class FunDefFindingVisitor(ast.NodeVisitor):
 
 class LogicExpressionASTVisitor(ast.NodeVisitor):
 
-    def __init__(self):
+    def __init__(self, globals=dict()):
+        # arguments to the function
         self.arg_pos = {}
+        # local variables
         self.iddefs = {}
+        # global variables (to the condition function)
+        self.globals = globals
         super(ast.NodeVisitor).__init__()
 
     def generic_visit(self, node):
@@ -70,21 +75,33 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
             # assumes unscripted reference is to local variable
             iddef = self.iddefs[node.id]
             return IdentifierRef(iddef)
-        else:
-            assert node.id in self.arg_pos
+        elif node.id in self.arg_pos:
             arg_name = node.id
             arg_pos = self.arg_pos[node.id]
             return Arg(arg_name, arg_pos)
+        else:
+            # it must be in global scope
+            source = astor.to_source(node).strip()
+            value = eval(source, self.globals)
+            print("eval:", source, "->", value)
+            return Const(value)
 
     def visit_Subscript(self, node):
         arg = self.visit(node.value)
         select = self.visit(node.slice.value)
+        # woah, arg itself is a constant? select better be one too!
+        if isinstance(arg, Const):
+            assert isinstance(select, Const)
+            return Const(arg.value[select.value])
+        # selected using a constant, just evaluate it
         if isinstance(select, Const):
             return VarList(arg, [select.value])
+        # selected using a list, ensure all are consts, & evaluate it
         elif isinstance(select, List):
             assert all([isinstance(e, Const) for e in select.elts])
             return VarList(arg, [e.value for e in select.elts])
         else:
+            # the selection itself has tensor vars!
             return VarCond(arg, select)
 
     def visit_Assign(self, node):
@@ -126,6 +143,10 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
     def visit_Num(self, node):
         #deprecated in 3.8
         return Const(node.n)
+
+    def visit_Str(self, node):
+        #deprecated in 3.8
+        return Const(node.s)
 
     def visit_Constant(self, node):
         return Const(node.value)

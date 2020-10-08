@@ -19,28 +19,15 @@ class Solver:
         raise NotImplementedError
 
 
-class ASTSolver(Solver):
+class ASTLogicSolver(Solver):
     '''Computes the loss by looking at code structure.'''
 
-    def set_cond(self, cond):
-        super().set_cond(cond)
-        astree = ast.parse(inspect.getsource(cond).strip())
-        fundef = self.find_function_def(astree)
-        self.visit_ast(fundef)
-
-    def find_function_def(self, astree):
-        '''Find the appropriate node in the AST.'''
-        visitor = FunDefFindingVisitor()
-        return visitor.visit(astree)
-
-    def visit_ast(self, astree):
-        '''Visit the AST once, to perform any computations.'''
-        raise NotImplementedError
-
-
-class ASTLogicSolver(ASTSolver):
-
-    def visit_ast(self, astree):
-        self.visitor = LogicExpressionASTVisitor()
-        self.bool_tree = self.visitor.visit(astree)
-        print(self.bool_tree)
+    def get_bool_tree(self):
+        # TODO: need to do this only once (problem is eval in ASTVisitor)
+        source = inspect.getsource(self.cond).strip()
+        astree = ast.parse(source)
+        fundef = FunDefFindingVisitor().visit(astree)
+        self.visitor = LogicExpressionASTVisitor(self.cond.__globals__)
+        bool_tree = self.visitor.visit(fundef)
+        print(bool_tree)
+        return bool_tree

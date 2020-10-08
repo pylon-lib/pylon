@@ -15,9 +15,9 @@ class BruteForceSolver(Solver):
         shapes = [log_probs[i].shape for i in range(len(log_probs))]
 
         vals = tuple(
-                torch.cartesian_prod(*[torch.tensor(range(shapes[i][-1]))] * shapes[i][-2])\
-                .unsqueeze(1).expand(-1, shapes[i][0] if len(shapes[i]) == 3 else 1, -1).squeeze()\
-                for i in range(llgprbs))
+            torch.cartesian_prod(*[torch.tensor(range(shapes[i][-1]))] * shapes[i][-2])
+            .unsqueeze(1).expand(-1, shapes[i][0] if len(shapes[i]) == 3 else 1, -1).squeeze()
+            for i in range(llgprbs))
 
         return list(itertools.product(*vals))
 
@@ -40,8 +40,9 @@ class BruteForceSolver(Solver):
         sat_losses = losses.clone()
         sat_losses[~indices] = -float('inf')
 
-        loss = sat_losses.logsumexp(dim = 0) - losses.logsumexp(dim=0)
+        loss = sat_losses.logsumexp(dim=0) - losses.logsumexp(dim=0)
         return -loss.sum()
+
 
 class SatisfactionBruteForceSolver(BruteForceSolver):
     '''Add a loss that encourages the total probability over all possible decodings that satisfy the constraint.'''
@@ -62,4 +63,3 @@ class ViolationBruteForceSolver(BruteForceSolver):
 
     def reduce(self, losses):
         return torch.stack(tuple(losses)).logsumexp(dim=0)
-

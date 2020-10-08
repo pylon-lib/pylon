@@ -1,4 +1,3 @@
-from .basic_model import net_binary, net_multi, train
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
@@ -6,6 +5,7 @@ from pytorch_constraints.constraint import constraint
 from pytorch_constraints.brute_force_solver import *
 import torch.nn.functional as F
 import torch
+import pytest
 import sys
 sys.path.append('../')
 
@@ -25,11 +25,11 @@ class Net(torch.nn.Module):
                 torch.rand(self.num_labels*2, 1))
 
     def forward(self, x):
-        return torch.matmul(self.w, x).view(-1 ,2, self.num_labels)
+        return torch.matmul(self.w, x).view(-1, 2, self.num_labels)
 
 
 def train(net, constraint=None, epoch=100):
-    x = torch.cat([torch.tensor([1.0])]*2).reshape(2,1,1)
+    x = torch.cat([torch.tensor([1.0])]*2).reshape(2, 1, 1)
     y = torch.cat([torch.tensor([0, 1])]*2)
 
     y0 = F.softmax(net(x), dim=-1)
@@ -38,7 +38,7 @@ def train(net, constraint=None, epoch=100):
     for _ in range(100):
         opt.zero_grad()
         y_logit = net(x)
-        loss = F.cross_entropy(y_logit[:, 1:].reshape(2,2), torch.tensor([1,1]))
+        loss = F.cross_entropy(y_logit[:, 1:].reshape(2, 2), torch.tensor([1, 1]))
         if constraint is not None:
             loss += constraint(y_logit)
         loss.backward()
@@ -49,8 +49,9 @@ def train(net, constraint=None, epoch=100):
 
 def xor(y):
     return torch.logical_or(
-            y[:, 0].logical_and(y[:, 1].logical_not()),\
-            y[:,0].logical_not().logical_and(y[:, 1]))
+        y[:, 0].logical_and(y[:, 1].logical_not()),
+        y[:, 0].logical_not().logical_and(y[:, 1]))
+
 
 def get_tnorm_solvers():
     return [
@@ -64,8 +65,10 @@ def get_sampling_solvers(num_samples):
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples)
     ]
 
+
 def get_solvers(num_samples):
-        return get_sampling_solvers(num_samples) #+ [SemanticLossCircuitSolver()] + get_tnorm_solvers()
+    return get_sampling_solvers(num_samples)  # + [SemanticLossCircuitSolver()] + get_tnorm_solvers()
+
 
 def test_xor_batch():
     net_binary = Net(2)
@@ -77,7 +80,7 @@ def test_xor_batch():
             cons = constraint(xor, solver)
 
             net, y0 = train(net_binary, cons)
-            x = torch.cat([torch.tensor([1.0])]*2).reshape(2,1,1)
+            x = torch.cat([torch.tensor([1.0])]*2).reshape(2, 1, 1)
             y = F.softmax(net(x), dim=-1)
 
             if all(y[:, 0, 0] > 0.75) and all(y[:, 0, 1] < 0.25):
@@ -87,3 +90,6 @@ def test_xor_batch():
 
         assert success == num_tries
 
+
+if __name__ == "__main__":
+    pytest.main([__file__])
