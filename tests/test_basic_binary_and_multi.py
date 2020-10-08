@@ -4,6 +4,7 @@ from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.brute_force_solver import *
+from pytorch_constraints.ilp_solver import ILPSolver
 import torch.nn.functional as F
 import torch
 import sys
@@ -26,7 +27,7 @@ def get_sampling_solvers(num_samples):
     ]
 
 def get_solvers(num_samples):
-        return get_sampling_solvers(num_samples) + get_tnorm_solvers()
+        return get_sampling_solvers(num_samples) + get_tnorm_solvers() + [ILPSolver()]
 
 class Net(torch.nn.Module):
     '''Neural network with a single input (fixed) and two categorical outputs.'''
@@ -103,3 +104,7 @@ def test_or_binary_and_multi():
                 success += 1
 
         assert success == num_tries
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

@@ -41,12 +41,11 @@ def test_xor_binary(net_binary):
         net, y0 = train(net_binary, cons)
         x = torch.tensor([1.0])
         y = torch.softmax(net(x), dim=-1)
-        y = solver.inference(y)
-        y = torch.tensor(y)
+        y_ = solver.inference(y)
 
-        if y[0] < 0.25:
+        if y_[0][0][1] < 0.25:
             success += 1
-        assert y[1] > 0.75
+        assert y_[0][1][1] > 0.75
 
     assert success == num_tries
 

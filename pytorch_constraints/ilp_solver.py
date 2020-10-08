@@ -25,39 +25,39 @@ class ILPVisitor(TreeNodeVisitor):
     def le(self, expression):
         raise NotImplementedError
 
-    def visit_And(self, node, var):
-        lv = self.visit(node.left, var)
-        rv = self.visit(node.right, var)
+    def visit_And(self, node, vars):
+        lv = self.visit(node.left, vars)
+        rv = self.visit(node.right, vars)
         andv = self.var(f'and-{self.auto}')
         self.le(andv - lv)  # andv <= lv
         self.le(andv - rv)  # andv <= rv
         self.le(lv + rv - andv - 1)  # lv + rv <= andv + 1
         return andv
 
-    def visit_Or(self, node, var):
-        lv = self.visit(node.left, var)
-        rv = self.visit(node.right, var)
+    def visit_Or(self, node, vars):
+        lv = self.visit(node.left, vars)
+        rv = self.visit(node.right, vars)
         orv = self.var(f'or-{self.auto}')
         self.le(lv - orv)  # lv <= orv
         self.le(rv - orv)  # rv <= orv
         self.le(orv - lv - rv)  # orv <= lv + rv
         return orv
 
-    def visit_Not(self, node, var):
-        v = self.visit(node.operand, var)
+    def visit_Not(self, node, vars):
+        v = self.visit(node.operand, vars)
         notv = self.var(f'not-{self.auto}')
         self.eq(v + notv - 1)  # v == 1 - notv
         return notv
 
-    def visit_FunDef(self, node, var):
-        return self.visit(node.return_node, var)
+    def visit_FunDef(self, node, vars):
+        return self.visit(node.return_node, vars)
 
-    def visit_VarList(self, node, var):
-        return var[node.indices[0]]
+    def visit_VarList(self, node, vars):
+        return vars[node.arg.arg_pos][node.indices[0]][1]
 
-    def visit_IsEq(self, node, var):
-        lv = self.visit(node.left, var)
-        rv = self.visit(node.right, var)
+    def visit_IsEq(self, node, vars):
+        lv = self.visit(node.left, vars)
+        rv = self.visit(node.right, vars)
         iseqv = self.var(f'iseq-{self.auto}')
         self.le(lv + rv - iseqv - 1)  # TT -> T
         self.le(- lv - rv - iseqv + 1)  # FF -> T
@@ -82,55 +82,76 @@ class PulpILPVisitor(ILPVisitor):
 
 
 class ILPSolver(ASTLogicSolver):
-    def inference(self, probs):
+    def score(self, prob):
+        return prob.detach().log().cpu().numpy()
+
+    def inference(self, *probs):
         m = pulp.LpProblem("ilp", pulp.LpMaximize)
 
         # variables
-        y_var = []
+        vars = []
         for i, prob in enumerate(probs):
-            var = pulp.LpVariable(f'y{i}', lowBound=0, upBound=1, cat='Binary')
-            # varnot = pulp.LpVariable(f'noty{i}', lowBound=0, upBound=1, cat='Binary')
-            y_var.append(var)
+            var = []
+            vars.append(var)
+            for j, pr in enumerate(prob):
+                var_values = []
+                var.append(var_values)
+                for k, p in enumerate(pr):
+                    var_value = pulp.LpVariable(f'y_{i}_{j}_{k}', lowBound=0, upBound=1, cat='Binary')
+                    var_values.append(var_value)
+                m += sum(var_values) == 1
 
         # constraints
         visitor = PulpILPVisitor(m)
-        m += visitor.visit(self.bool_tree, y_var) == 1
+        m += visitor.visit(self.bool_tree, vars) == 1
 
         # objective
         obj = 0
-        scores = probs.detach().log().cpu().numpy()
-        for score, var in zip(scores, y_var):
-            obj += score[1] * var + score[0] * (1 - var)
+        for prob, var in zip(probs, vars):
+            score = self.score(prob)
+            for pr, var_values, sc in zip(prob, var, score):
+                for p, var_value, s in zip(pr, var_values, sc):
+                    obj += s * var_value
+        # for score, var in zip(scores, y_var):
+        #     obj += score[1] * var + score[0] * (1 - var)
         m += obj
 
         status = m.solve()
 
         sln = []
-        for var in y_var:
-            val = pulp.value(var)
-            sln.append(val)
+        for var in vars:
+            sln_var = []
+            sln.append(sln_var)
+            for var_values in var:
+                sln_var_values = []
+                sln_var.append(sln_var_values)
+                for var_value in var_values:
+                    val = pulp.value(var_value)
+                    sln_var_values.append(val)
 
         return sln
 
-    def sample(self, probs):
-        return [self.inference(probs), ]
+    def sample(self, *probs):
+        return [self.inference(*probs), ]
 
-    def loss(self, logits, targets=None):
-        probs = torch.softmax(logits, dim=-1)
-        samples = self.sample(probs)
+    def loss(self, *logits, targets=None):
+        if not isinstance(targets, tuple) and targets is not None:
+            targets = (targets,)
+        probs = [torch.softmax(logit, dim=-1) for logit in logits]
+        samples = self.sample(*probs)
         loss = 0
         if targets is not None:
             # supervised
             for sample in samples:
-                weight = (targets != torch.tensor(sample)).float()
-                targets_binary = torch.zeros_like(logits)
-                targets_binary.scatter_(1, targets.unsqueeze(-1).long(), 1)
-                loss += F.binary_cross_entropy_with_logits(logits, targets_binary, weight=weight)
+                for var, logit, target in zip(sample, logits, targets):
+                    weight = (target != torch.tensor(var)).float()
+                    target_binary = torch.zeros_like(logit)
+                    target_binary.scatter_(1, target.unsqueeze(-1).long(), 1)
+                    loss += F.binary_cross_entropy_with_logits(logit, target_binary, weight=weight)
         else:
             # unsupervised:
             for sample in samples:
-                targets = torch.tensor(sample)
-                targets_binary = torch.zeros_like(logits)
-                targets_binary.scatter_(1, targets.unsqueeze(-1).long(), 1)
-                loss += F.binary_cross_entropy_with_logits(logits, targets_binary)
+                for var, logit in zip(sample, logits):
+                    target_binary = torch.tensor(var)
+                    loss += F.binary_cross_entropy_with_logits(logit, target_binary)
         return loss
