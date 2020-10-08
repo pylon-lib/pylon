@@ -4,8 +4,10 @@ from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.brute_force_solver import *
+from pytorch_constraints.ilp_solver import ILPSolver
 import torch.nn.functional as F
 import torch
+import pytest
 import sys
 sys.path.append('../')
 
@@ -44,7 +46,7 @@ def get_sampling_solvers(num_samples):
 
 
 def get_solvers(num_samples):
-    return get_sampling_solvers(num_samples) + [SemanticLossCircuitSolver()] + get_tnorm_solvers()
+    return get_sampling_solvers(num_samples) + [SemanticLossCircuitSolver(), ILPSolver()] + get_tnorm_solvers()
 
 
 def test_xor_binary(net_binary):
@@ -332,3 +334,7 @@ def test_quant_exists_var(net_binary):
             assert y[1, 1] > 0.8
 
         assert success == num_tries
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

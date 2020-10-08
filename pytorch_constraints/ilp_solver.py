@@ -55,6 +55,16 @@ class ILPVisitor(TreeNodeVisitor):
     def visit_VarList(self, node, var):
         return var[node.indices[0]]
 
+    def visit_IsEq(self, node, var):
+        lv = self.visit(node.left, var)
+        rv = self.visit(node.right, var)
+        iseqv = self.var(f'iseq-{self.auto}')
+        self.le(lv + rv - iseqv - 1)  # TT -> T
+        self.le(- lv - rv - iseqv + 1)  # FF -> T
+        self.le(lv - rv + iseqv - 1)  # TF -> F
+        self.le(- lv + rv + iseqv - 1)  # FT -> F
+        return iseqv
+
 
 class PulpILPVisitor(ILPVisitor):
     def __init__(self, model):
@@ -113,12 +123,14 @@ class ILPSolver(ASTLogicSolver):
             # supervised
             for sample in samples:
                 weight = (targets != torch.tensor(sample)).float()
-                targets = torch.stack([1-targets, targets], dim=-1).float()
-                loss += F.binary_cross_entropy_with_logits(logits, targets, weight=weight)
+                targets_binary = torch.zeros_like(logits)
+                targets_binary.scatter_(1, targets.unsqueeze(-1).long(), 1)
+                loss += F.binary_cross_entropy_with_logits(logits, targets_binary, weight=weight)
         else:
             # unsupervised:
             for sample in samples:
                 targets = torch.tensor(sample)
-                targets = torch.stack([1-targets, targets], dim=-1).float()
-                loss += F.binary_cross_entropy_with_logits(logits, targets)
+                targets_binary = torch.zeros_like(logits)
+                targets_binary.scatter_(1, targets.unsqueeze(-1).long(), 1)
+                loss += F.binary_cross_entropy_with_logits(logits, targets_binary)
         return loss
