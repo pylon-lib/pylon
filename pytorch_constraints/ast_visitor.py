@@ -144,6 +144,10 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         #deprecated in 3.8
         return Const(node.n)
 
+    def visit_Str(self, node):
+        #deprecated in 3.8
+        return Const(node.s)
+
     def visit_Constant(self, node):
         return Const(node.value)
 
