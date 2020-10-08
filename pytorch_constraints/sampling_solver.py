@@ -21,14 +21,14 @@ class SamplingSolver(Solver):
         probs = [torch.tensor(1/logits[i].shape[-1]).expand_as(logits[i]) for i in range(len(logits))]
 
         # samples Shape: len(logits) x num_samples x logits[i].shape[:-1]
-        samples = tuple(torch.distributions.categorical.Categorical(probs=probs[i]).sample((num_samples,))\
-                for i in range(len(probs)))
+        samples = tuple(torch.distributions.categorical.Categorical(probs=probs[i]).sample((num_samples,))
+                        for i in range(len(probs)))
 
         return list(zip(*samples))
 
     def loss(self, *logits, **kwargs):
 
-        llogits = len(logits) 
+        llogits = len(logits)
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(llogits)]
 
         samples = self.sample(logits, self.num_samples)
@@ -40,8 +40,9 @@ class SamplingSolver(Solver):
         sat_losses = losses.clone()
         sat_losses[~indices] = -float('inf')
 
-        loss = sat_losses.logsumexp(dim = 0) - losses.logsumexp(dim=0)
+        loss = sat_losses.logsumexp(dim=0) - losses.logsumexp(dim=0)
         return -loss.sum()
+
 
 class WeightedSamplingSolver(SamplingSolver):
 
@@ -49,7 +50,7 @@ class WeightedSamplingSolver(SamplingSolver):
         '''Sample a decoding of variables from a multinomial distribution parameterized by network probabilities'''
 
         # samples Shape: len(logits) x num_samples x logits[i].shape[:-1]
-        samples = tuple(torch.distributions.categorical.Categorical(logits=logits[i]).sample((num_samples,))\
-                for i in range(len(logits)))
+        samples = tuple(torch.distributions.categorical.Categorical(logits=logits[i]).sample((num_samples,))
+                        for i in range(len(logits)))
 
         return list(zip(*samples))
