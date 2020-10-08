@@ -73,6 +73,7 @@ class PulpILPVisitor(ILPVisitor):
 
 class ILPSolver(ASTLogicSolver):
     def inference(self, probs):
+        bool_tree = self.get_bool_tree()
         m = pulp.LpProblem("ilp", pulp.LpMaximize)
 
         # variables
@@ -84,7 +85,7 @@ class ILPSolver(ASTLogicSolver):
 
         # constraints
         visitor = PulpILPVisitor(m)
-        m += visitor.visit(self.bool_tree, y_var) == 1
+        m += visitor.visit(bool_tree, y_var) == 1
 
         # objective
         obj = 0

@@ -10,10 +10,11 @@ from pysdd.sdd import SddManager, Vtree, WmcManager
 class SemanticLossCircuitSolver(ASTLogicSolver):
 
     def loss(self, *logits):
+        bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
         vtree = Vtree(var_count=1)
         mgr = SddManager.from_vtree(vtree)
-        sdd = SddVisitor().visit(self.bool_tree, mgr)
+        sdd = SddVisitor().visit(bool_tree, mgr)
         return -self.prob(sdd, probs).log()
 
     # TODO: write a logprob solver that avoids underflow.
