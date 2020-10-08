@@ -9,8 +9,10 @@ ENT = LABEL_TO_ID['Entailment']
 CON = LABEL_TO_ID['Contradiction']
 NEU = LABEL_TO_ID['Neutral']
 
+
 def get_solvers():
     return [ProductTNormLogicSolver()]
+
 
 class NLI_Net(torch.nn.Module):
     '''Simple NLI model'''
@@ -26,7 +28,7 @@ class NLI_Net(torch.nn.Module):
         self.embedding = torch.nn.Embedding(self.vocab_size, self.embedding_dim)
         #self.embedding.weight = torch.nn.Parameter(vocab.vectors)
         self.embedding.weight.data.uniform_(-1.0, 1.0)
-        
+
         self.lstm = torch.nn.LSTM(self.embedding_dim, self.hidden_dim, batch_first=True)
         self.fc = torch.nn.Linear(self.hidden_dim, num_classes)
 
@@ -54,25 +56,31 @@ def transitivity(ph_batch, hz_batch, pz_batch):
     ec_c = (ph_batch == 0 and hz_batch == 1) <= (pz_batch == 1)
     ne_notc = (ph_batch == 2 and hz_batch == 0) <= (not (pz_batch == 1))
     nc_note = (ph_batch == 2 and hz_batch == 1) <= (not (pz_batch == 0))
-    block_safezone = (ph_batch == 2 and hz_batch == 2) <= (not (pz_batch == 2)) # just block Neu and Neu -> Neu and force it to change
+    # just block Neu and Neu -> Neu and force it to change
+    block_safezone = (ph_batch == 2 and hz_batch == 2) <= (not (pz_batch == 2))
     return ee_e and ec_c and ne_notc and nc_note and block_safezone
 
 # inputs are binary masks where 1 is the spiked label and 0's are the rest
+
+
 def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
     ee_e = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, ENT]).all()
     ec_c = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, CON]).all()
-    ne_notc = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, CON].logical_not()).all()
-    nc_note = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, ENT].logical_not()).all()
-    block_safezone = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
+    ne_notc = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, ENT]).logical_not(
+    ).logical_or(pz_y_mask[:, CON].logical_not()).all()
+    nc_note = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, CON]).logical_not(
+    ).logical_or(pz_y_mask[:, ENT].logical_not()).all()
+    block_safezone = ph_y_mask[:, NEU].logical_and(
+        hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
     return ee_e and ec_c and ne_notc and nc_note and block_safezone
 
 
 def train(data, constraint):
-    
+
     nli = NLI_Net(vocab_size=3027, num_classes=len(LABEL_TO_ID))
 
     opt = torch.optim.SGD(list(nli.parameters()), lr=1.0)
-    
+
     ph_tokens, hz_tokens, pz_tokens, ph_y = data
 
     for i in range(100):
@@ -84,19 +92,19 @@ def train(data, constraint):
 
         yloss = F.cross_entropy(ph_logits, ph_y.view(-1))
         closs = constraint(ph_logits, hz_logits, pz_logits)
-        loss = 0.5 * closs + 0.95 * yloss 
+        loss = 0.5 * closs + 0.95 * yloss
 
         loss.backward()
         opt.step()
-        
+
     return nli
 
-    
+
 def test_nli():
     ph_tokens, hz_tokens, pz_tokens, ph_y = get_data()
 
     for solver in get_solvers():
-        
+
         cons = constraint(transitivity, solver)
         nli = train([ph_tokens, hz_tokens, pz_tokens, ph_y], cons)
 
@@ -110,15 +118,16 @@ def test_nli():
 
         sup_rs = ph_y_mask[:, NEU].all()
         transitivity_rs = transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask)
-        
+
         assert sup_rs and transitivity_rs
-    
+
+
 def get_data():
-    
-    p = torch.tensor([[  32, 1973, 2272,   15,    3,    0,    0,    5,    0,  389,    0,   12,
-            7,  823,    4, 2636,    4,    0,  114,    5,    3, 2701,    6]])
+
+    p = torch.tensor([[32, 1973, 2272,   15,    3,    0,    0,    5,    0,  389,    0,   12,
+                       7,  823,    4, 2636,    4,    0,  114,    5,    3, 2701,    6]])
     h = p + 100
     z = h + 100
     y = torch.tensor([NEU])
-    
+
     return [p, h], [h, z], [p, z], y

@@ -1,12 +1,10 @@
+from .basic_model import net_binary
+from pytorch_constraints.constraint import constraint
+from pytorch_constraints.ilp_solver import ILPSolver
 import pytest
 import torch
 import sys
 sys.path.append('..')
-
-from pytorch_constraints.ilp_solver import ILPSolver
-from pytorch_constraints.constraint import constraint
-
-from .basic_model import net_binary
 
 
 def train(net, constraint=None, epoch=100):

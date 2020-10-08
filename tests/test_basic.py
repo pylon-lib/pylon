@@ -11,9 +11,11 @@ import pytest
 import sys
 sys.path.append('../')
 
+a = {"key": 1}
+
 
 def xor(y):
-    return (y[0] and not y[1]) or (not y[0] and y[1])
+    return (y[0] and not y[a['key']]) or (not y[0] and y[a['key']])
 
 
 def test_basic_binary(net_binary):

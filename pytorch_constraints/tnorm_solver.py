@@ -84,8 +84,9 @@ class ProductTNormVisitor(TNormTreeNodeVisitor):
 class ProductTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
+        bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        tree_prob = ProductTNormVisitor().visit(self.bool_tree, probs)
+        tree_prob = ProductTNormVisitor().visit(bool_tree, probs)
         return -tree_prob.log()
 
 
@@ -118,8 +119,9 @@ class LukasiewiczTNormVisitor(TNormTreeNodeVisitor):
 class LukasiewiczTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
+        bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        return -LukasiewiczTNormVisitor().visit(self.bool_tree, probs).log()
+        return -LukasiewiczTNormVisitor().visit(bool_tree, probs).log()
 
 
 class GodelTNormVisitor(TNormTreeNodeVisitor):
@@ -148,5 +150,6 @@ class GodelTNormVisitor(TNormTreeNodeVisitor):
 class GodelTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
+        bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        return -GodelTNormVisitor().visit(self.bool_tree, probs).log()
+        return -GodelTNormVisitor().visit(bool_tree, probs).log()
