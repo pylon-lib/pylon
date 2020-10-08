@@ -1,4 +1,5 @@
 import ast
+import astor
 from functools import reduce
 import torch
 from .tree_node import *
@@ -27,8 +28,7 @@ class FunDefFindingVisitor(ast.NodeVisitor):
 
 class LogicExpressionASTVisitor(ast.NodeVisitor):
 
-    def __init__(self, source, globals=dict()):
-        self.source = source
+    def __init__(self, globals=dict()):
         # arguments to the function
         self.arg_pos = {}
         # local variables
@@ -81,8 +81,7 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
             return Arg(arg_name, arg_pos)
         else:
             # it must be in global scope
-            # print("unparse", ast.unparse(node))
-            source = ast.get_source_segment(self.source, node)
+            source = astor.to_source(node).strip()
             value = eval(source, self.globals)
             print("eval:", source, "->", value)
             return Const(value)

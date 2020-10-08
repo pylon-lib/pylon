@@ -12,7 +12,7 @@ def parse_object(obj):
     source = inspect.getsource(obj)
     astree = ast.parse(source)
     fundef = finder.visit(astree)
-    parser = LogicExpressionASTVisitor(source, obj.__globals__)
+    parser = LogicExpressionASTVisitor(obj.__globals__)
     return parser.visit(fundef)
 
 

@@ -27,7 +27,7 @@ class ASTLogicSolver(Solver):
         source = inspect.getsource(self.cond).strip()
         astree = ast.parse(source)
         fundef = FunDefFindingVisitor().visit(astree)
-        self.visitor = LogicExpressionASTVisitor(source, self.cond.__globals__)
+        self.visitor = LogicExpressionASTVisitor(self.cond.__globals__)
         bool_tree = self.visitor.visit(fundef)
         print(bool_tree)
         return bool_tree

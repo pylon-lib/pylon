@@ -7,7 +7,7 @@ from pytorch_constraints.ast_visitor import *
 
 def parse_object(obj):
     source = inspect.getsource(obj)
-    return source, obj.__globals__, ast.parse(source)
+    return obj.__globals__, ast.parse(source)
 
 
 def true(y): return True
@@ -78,9 +78,9 @@ def parses():
 def test_parses(parses):
     finder = FunDefFindingVisitor()
     for (f, tree) in parses:
-        src, globs, astree = parse_object(f)
+        globs, astree = parse_object(f)
         fundef = finder.visit(astree)
-        parser = LogicExpressionASTVisitor(src, globs)
+        parser = LogicExpressionASTVisitor(globs)
         ptree = parser.visit(fundef)
         print(ptree, tree)
         assert ptree.return_node == tree
