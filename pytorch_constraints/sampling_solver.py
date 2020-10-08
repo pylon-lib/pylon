@@ -28,6 +28,24 @@ class SamplingSolver(Solver):
 
     def loss(self, *logits, **kwargs):
 
+        if kwargs.get('input') is not None:
+
+            inputs = kwargs['input'].flatten() 
+            num_classes = logits[0].shape[-1] 
+
+            mul_mask = torch.ones(-1,num_classes) 
+            mul_mask[inputs.nonzero(as_tuple=True)] = 0
+            mul_mask = mul_mask.view(logits[0].shape)
+
+            add_mask = torch.zeros(-1, num_classes) 
+            add_mask[inputs.nonzero(as_tuple=True)] = -float('inf')
+            tmp = add_mask[inputs.nonzero(as_tuple=True)]
+            tmp.scatter_(-1, inputs[inputs.nonzero()] -1, 0)
+            add_mask[inputs.nonzero(as_tuple=True)] = tmp
+            add_mask = add_mask.view(logits[0].shape) 
+
+            logits = tuple(logit * mul_mask + add_mask for logit in logits)
+
         llogits = len(logits) 
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(llogits)]
 
