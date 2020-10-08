@@ -1,10 +1,27 @@
-from .basic_model import net_binary
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.ilp_solver import ILPSolver
 import pytest
 import torch
 import sys
 sys.path.append('..')
+
+
+class Net(torch.nn.Module):
+    '''Neural network with a single input (fixed) and two categorical outputs.'''
+
+    def __init__(self, num_labels, w=None):
+        super().__init__()
+        self.num_labels = num_labels
+        if w is not None:
+            self.w = torch.nn.Parameter(
+                torch.tensor(w).float().view(
+                    self.num_labels*2, 1))
+        else:
+            self.w = torch.nn.Parameter(
+                torch.rand(self.num_labels*2, 1))
+
+    def forward(self, x):
+        return torch.matmul(self.w, x).view(2, self.num_labels)
 
 
 def train(net, constraint=None, epoch=100):
@@ -23,6 +40,12 @@ def train(net, constraint=None, epoch=100):
         opt.step()
 
     return net, y0
+
+
+@pytest.fixture
+def net_binary():
+    net = Net(2)
+    return net
 
 
 def xor(y):

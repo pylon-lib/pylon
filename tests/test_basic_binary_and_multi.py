@@ -1,5 +1,4 @@
 import pytest
-from .basic_model import net_binary, net_multi, train
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
