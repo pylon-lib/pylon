@@ -123,6 +123,20 @@ class VarList(TreeNode):
         return probs[self.arg.arg_pos][self.indices, :]
 
 
+class Slice(TreeNode):
+    def __init__(self, lower, step, upper):
+        self.lower = lower
+        self.step = step
+        self.upper = upper
+        super().__init__(f"{lower or ''}:{upper or ''}:{step or ''}", [])
+
+
+class ExtSlice(TreeNode):
+    def __init__(self, slices):
+        self.slices = slices
+        super().__init__(", ".join(map(str, slices)), [])
+
+
 class VarCond(TreeNode):
     '''Uses a boolean expression to select elements, such as "y[x==2]"'''
 

@@ -86,9 +86,18 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
             print("eval:", source, "->", value)
             return Const(value)
 
+    def visit_Index(self, node):
+        return self.visit(node.value)
+
+    def visit_Slice(self, node):
+        return Slice(node.lower, node.step, node.upper)
+
+    def visit_ExtSlice(self, node):
+        return ExtSlice([self.visit(dim) for dim in node.dims])
+
     def visit_Subscript(self, node):
         arg = self.visit(node.value)
-        select = self.visit(node.slice.value)
+        select = self.visit(node.slice)
         # woah, arg itself is a constant? select better be one too!
         if isinstance(arg, Const):
             assert isinstance(select, Const)
@@ -100,6 +109,10 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         elif isinstance(select, List):
             assert all([isinstance(e, Const) for e in select.elts])
             return VarList(arg, [e.value for e in select.elts])
+        # selected using ExtSlice, which is a python list of slice/index
+        elif isinstance(select, ExtSlice):
+            assert all([isinstance(e, (Const, Slice)) for e in select.slices])
+            return VarList(arg, select)
         else:
             # the selection itself has tensor vars!
             return VarCond(arg, select)
