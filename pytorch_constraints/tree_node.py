@@ -128,7 +128,9 @@ class Slice(TreeNode):
         self.lower = lower
         self.step = step
         self.upper = upper
-        super().__init__(f"{lower or ''}:{upper or ''}:{step or ''}", [])
+        super().__init__(f"{lower if lower is not None else ''}:"
+                         f"{upper if upper is not None else ''}:"
+                         f"{step if step is not None else ''}", [])
 
 
 class ExtSlice(TreeNode):
