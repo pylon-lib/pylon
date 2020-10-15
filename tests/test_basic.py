@@ -7,8 +7,6 @@ from pytorch_constraints.ilp_solver import ILPSolver
 import torch.nn.functional as F
 import torch
 import pytest
-import sys
-sys.path.append('../')
 
 
 class Net(torch.nn.Module):
