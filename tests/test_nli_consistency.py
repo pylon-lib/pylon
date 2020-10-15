@@ -14,8 +14,8 @@ NEU = LABEL_TO_ID['Neutral']
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
-    #return [WeightedSamplingSolver(num_samples)]
+    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()]
+    #return [ProductTNormLogicSolver()]
 
 
 class NLI_Net(torch.nn.Module):
@@ -74,7 +74,8 @@ def transitivity_sampling(ph_batch, hz_batch, pz_batch):
         ne_notc = (ph == 2 and hz == 0) <= (not (pz == 1))
         nc_note = (ph == 2 and hz == 1) <= (not (pz == 0))
         block_safezone = (ph == 2 and hz == 2) <= (not (pz == 2))
-        out += [ee_e and ec_c and ne_notc and nc_note and block_safezone]
+        #out += [ee_e and ec_c and ne_notc and nc_note and block_safezone]
+        out += [ee_e]
 
     return torch.tensor(out)
 
@@ -88,7 +89,7 @@ def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
     ).logical_or(pz_y_mask[:, ENT].logical_not()).all()
     block_safezone = ph_y_mask[:, NEU].logical_and(
         hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
-    return ee_e and ec_c and ne_notc and nc_note and block_safezone
+    return ee_e #and ec_c and ne_notc and nc_note and block_safezone
 
 
 def train(data, constraint):
