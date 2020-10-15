@@ -3,6 +3,8 @@ import torch.nn.functional as F
 
 from pytorch_constraints.constraint import constraint
 from pytorch_constraints.tnorm_solver import *
+from pytorch_constraints.sampling_solver import WeightedSamplingSolver
+#from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 
 LABEL_TO_ID = {'Entailment': 0, 'Contradiction': 1, 'Neutral': 2}
 ENT = LABEL_TO_ID['Entailment']
@@ -10,8 +12,9 @@ CON = LABEL_TO_ID['Contradiction']
 NEU = LABEL_TO_ID['Neutral']
 
 
-def get_solvers():
-    return [ProductTNormLogicSolver()]
+# TODO, add more solvers
+def get_solvers(num_samples):
+    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
 
 
 class NLI_Net(torch.nn.Module):
@@ -103,7 +106,7 @@ def train(data, constraint):
 def test_nli():
     ph_tokens, hz_tokens, pz_tokens, ph_y = get_data()
 
-    for solver in get_solvers():
+    for solver in get_solvers(num_samples=50):
 
         cons = constraint(transitivity, solver)
         nli = train([ph_tokens, hz_tokens, pz_tokens, ph_y], cons)
