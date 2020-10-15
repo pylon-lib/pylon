@@ -54,7 +54,6 @@ class SamplingSolver(Solver):
 
         # TODO: remove extraneous torch.tensor wrapping. Currently in place for XOR example
         indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
-        indices = indices.view(losses.shape)  # fix shape mismatch in batch mode
 
         sat_losses = losses.clone()
         sat_losses[~indices] = -float('inf')

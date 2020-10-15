@@ -15,6 +15,7 @@ NEU = LABEL_TO_ID['Neutral']
 # TODO, add more solvers
 def get_solvers(num_samples):
     return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
+    #return [WeightedSamplingSolver(num_samples)]
 
 
 class NLI_Net(torch.nn.Module):
@@ -63,9 +64,21 @@ def transitivity(ph_batch, hz_batch, pz_batch):
     block_safezone = (ph_batch == 2 and hz_batch == 2) <= (not (pz_batch == 2))
     return ee_e and ec_c and ne_notc and nc_note and block_safezone
 
+# unzip and zip version for transitivity
+#   only meant for SamplingSolver
+def transitivity_sampling(ph_batch, hz_batch, pz_batch):
+    out = []
+    for ph, hz, pz in zip(ph_batch, hz_batch, pz_batch):
+        ee_e = (ph == 0 and hz == 0) <= (pz == 0)
+        ec_c = (ph == 0 and hz == 1) <= (pz == 1)
+        ne_notc = (ph == 2 and hz == 0) <= (not (pz == 1))
+        nc_note = (ph == 2 and hz == 1) <= (not (pz == 0))
+        block_safezone = (ph == 2 and hz == 2) <= (not (pz == 2))
+        out += [ee_e and ec_c and ne_notc and nc_note and block_safezone]
+
+    return torch.tensor(out)
+
 # inputs are binary masks where 1 is the spiked label and 0's are the rest
-
-
 def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
     ee_e = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, ENT]).all()
     ec_c = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, CON]).all()
@@ -104,11 +117,13 @@ def train(data, constraint):
 
 
 def test_nli():
-    ph_tokens, hz_tokens, pz_tokens, ph_y = get_data()
+    ph_tokens, hz_tokens, pz_tokens, ph_y = get_batch_data()
 
     for solver in get_solvers(num_samples=50):
 
-        cons = constraint(transitivity, solver)
+        trans_func = transitivity_sampling if isinstance(solver, WeightedSamplingSolver) else transitivity
+
+        cons = constraint(trans_func, solver)
         nli = train([ph_tokens, hz_tokens, pz_tokens, ph_y], cons)
 
         ph_y_ = torch.softmax(nli(ph_tokens).view(-1, len(LABEL_TO_ID)), dim=-1)
@@ -124,6 +139,19 @@ def test_nli():
 
         assert sup_rs and transitivity_rs
 
+
+def get_batch_data():
+    p = torch.tensor([[32, 1973, 2272,   15,    3,    0,    0,    5,    0,  389,    0,   12,
+                       7,  823,    4, 2636,    4,    0,  114,    5,    3, 2701,    6]])
+    h = p + 100
+    z = h + 100
+    y = torch.tensor([NEU])
+    p = torch.cat([p, p])
+    h = torch.cat([h, h])
+    z = torch.cat([z, z])
+    y = torch.cat([y, y])
+
+    return [p, h], [h, z], [p, z], y
 
 def get_data():
 
