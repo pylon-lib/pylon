@@ -14,7 +14,8 @@ NEU = LABEL_TO_ID['Neutral']
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
+    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()]
+    #return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
     #return [WeightedSamplingSolver(num_samples)]
 
 
@@ -146,11 +147,13 @@ def get_batch_data():
                        7,  823,    4, 2636,    4,    0,  114,    5,    3, 2701,    6]])
     h = p + 100
     z = h + 100
+
+    batch_size = 2
     y = torch.tensor([NEU])
-    p = torch.cat([p, p])
-    h = torch.cat([h, h])
-    z = torch.cat([z, z])
-    y = torch.cat([y, y])
+    p = torch.cat([p]*batch_size)
+    h = torch.cat([h]*batch_size)
+    z = torch.cat([z]*batch_size)
+    y = torch.cat([y]*batch_size).view(batch_size, 1)   # the last dim must be retained
 
     return [p, h], [h, z], [p, z], y
 
