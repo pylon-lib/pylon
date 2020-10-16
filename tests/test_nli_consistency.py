@@ -14,8 +14,8 @@ NEU = LABEL_TO_ID['Neutral']
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver()]
-    #return [ProductTNormLogicSolver()]
+    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
+    #return [WeightedSamplingSolver(num_samples)]
 
 
 class NLI_Net(torch.nn.Module):
@@ -66,6 +66,7 @@ def transitivity(ph_batch, hz_batch, pz_batch):
 
 # unzip and zip version for transitivity
 #   only meant for SamplingSolver
+#   each batch of size (batch_size,) representing discrete labels
 def transitivity_sampling(ph_batch, hz_batch, pz_batch):
     out = []
     for ph, hz, pz in zip(ph_batch, hz_batch, pz_batch):
@@ -74,10 +75,9 @@ def transitivity_sampling(ph_batch, hz_batch, pz_batch):
         ne_notc = (ph == 2 and hz == 0) <= (not (pz == 1))
         nc_note = (ph == 2 and hz == 1) <= (not (pz == 0))
         block_safezone = (ph == 2 and hz == 2) <= (not (pz == 2))
-        #out += [ee_e and ec_c and ne_notc and nc_note and block_safezone]
-        out += [ee_e]
-
+        out += [ee_e and ec_c and ne_notc and nc_note and block_safezone]
     return torch.tensor(out)
+    
 
 # inputs are binary masks where 1 is the spiked label and 0's are the rest
 def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
@@ -89,7 +89,7 @@ def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
     ).logical_or(pz_y_mask[:, ENT].logical_not()).all()
     block_safezone = ph_y_mask[:, NEU].logical_and(
         hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
-    return ee_e #and ec_c and ne_notc and nc_note and block_safezone
+    return ee_e and ec_c and ne_notc and nc_note and block_safezone
 
 
 def train(data, constraint):
@@ -131,12 +131,12 @@ def test_nli():
         hz_y_ = torch.softmax(nli(hz_tokens).view(-1, len(LABEL_TO_ID)), dim=-1)
         pz_y_ = torch.softmax(nli(pz_tokens).view(-1, len(LABEL_TO_ID)), dim=-1)
 
-        ph_y_mask = (ph_y_ == ph_y_.max(-1)[0].view(-1, 1))
-        hz_y_mask = (hz_y_ == hz_y_.max(-1)[0].view(-1, 1))
-        pz_y_mask = (pz_y_ == pz_y_.max(-1)[0].view(-1, 1))
+        ph_y_mask = (ph_y_ == ph_y_.max(-1)[0].unsqueeze(-1))
+        hz_y_mask = (hz_y_ == hz_y_.max(-1)[0].unsqueeze(-1))
+        pz_y_mask = (pz_y_ == pz_y_.max(-1)[0].unsqueeze(-1))
 
         sup_rs = ph_y_mask[:, NEU].all()
-        transitivity_rs = transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask)
+        transitivity_rs = transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask).all()
 
         assert sup_rs and transitivity_rs
 
