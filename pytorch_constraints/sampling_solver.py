@@ -60,6 +60,8 @@ class SamplingSolver(Solver):
         #   this can help to determin whether losses should be further aggregated
         if indices.shape != losses.shape:
             losses = losses.sum(-1)
+        if indices.shape != losses.shape:
+            raise Exception("Weird loss shape {0}, doesn't match label samples shape {1}.".format(losses.shape, indicates.shape))
 
         sat_losses = losses.clone()
         sat_losses[~indices] = -float('inf')
