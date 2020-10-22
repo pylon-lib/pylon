@@ -141,12 +141,17 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
                 return Forall(self.visit(node.args[0]))
         elif isinstance(node.func, ast.Attribute):
             fname = node.func.attr
+            args = []
+            caller = self.visit(node.func.value)
+            if not (isinstance(caller, Const) and caller.value == torch):
+                args.append(caller)
+            args.extend(map(self.visit, node.args))
             if fname == 'logical_not':
-                return Not(self.visit(node.func.value))
+                return Not(*args)
             if fname == 'logical_and':
-                return And(self.visit(node.func.value), self.visit(node.args[0]))
+                return And(*args)
             if fname == 'logical_or':
-                return Or(self.visit(node.func.value), self.visit(node.args[0]))
+                return Or(*args)
         raise NotImplementedError(node)
 
     def visit_NameConstant(self, node):
