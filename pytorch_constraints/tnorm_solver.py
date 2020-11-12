@@ -42,7 +42,7 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
         if (l_const and r_subsel) or (r_const and l_subsel):
             subsel = node.right if r_subsel else node.left
             const = node.right if r_const else node.left
-            return subsel.probs(probs)[:, [const.value]]
+            return subsel.probs(probs)[..., [const.value]]
 
         (l_cond, r_cond) = (is_cond(node.left), is_cond(node.right))
         if (r_cond and l_const) or (r_const and l_cond):
@@ -80,14 +80,28 @@ class ProductTNormVisitor(TNormTreeNodeVisitor):
     def visit_Forall(self, node, probs):
         return self.visit(node.expr, probs).prod()
 
+    def visit_ForallAlong(self, node, probs):
+        tensor = self.visit(node.left, probs)
+        dim = node.right.value if node.right is not None else -1
+        return tensor.prod(dim)
+
+    def visit_ExistsAlong(self, node, probs):
+        # the formulation of disjunction for product t-norm doesn't easily generalize
+        #    so use \not \forall_x (\not x)
+        tensor = self.visit(node.left, probs)
+        dim = node.right.value if node.right is not None else -1
+        return 1 - (1 - tensor).prod(dim)
+
 
 class ProductTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
         bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        tree_prob = ProductTNormVisitor().visit(bool_tree, probs)
-        return -tree_prob.log()
+        rs = -ProductTNormVisitor().visit(bool_tree, probs).log()
+        while len(rs.shape) > 2 and rs.shape[-1] == 1:
+            rs = rs.squeeze(-1)
+        return rs
 
 
 class LukasiewiczTNormVisitor(TNormTreeNodeVisitor):
@@ -115,13 +129,28 @@ class LukasiewiczTNormVisitor(TNormTreeNodeVisitor):
         val = self.visit(node.expr, probs)
         return torch.relu(val.sum() - val.numel() + 1)
 
+    def visit_ForallAlong(self, node, probs):
+        tensor = self.visit(node.left, probs)
+        dim = node.right.value if node.right is not None else -1
+        # a generalized expression for conjunction
+        #   instead of an aggregated version from pairwise operations
+        return torch.relu(tensor.sum(dim) - tensor.shape[dim] + 1)
+
+    def visit_ExistsAlong(self, node, probs):
+        tensor = self.visit(node.left, probs)
+        dim = node.right.value if node.right is not None else -1
+        return 1 - torch.relu(1 - tensor.sum(dim))
+
 
 class LukasiewiczTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
         bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        return -LukasiewiczTNormVisitor().visit(bool_tree, probs).log()
+        rs = -LukasiewiczTNormVisitor().visit(bool_tree, probs).log()
+        while len(rs.shape) > 2 and rs.shape[-1] == 1:
+            rs = rs.squeeze(-1)
+        return rs
 
 
 class GodelTNormVisitor(TNormTreeNodeVisitor):
@@ -146,10 +175,23 @@ class GodelTNormVisitor(TNormTreeNodeVisitor):
     def visit_Forall(self, node, probs):
         return self.visit(node.expr, probs).min()
 
+    def visit_ForallAlong(self, node, probs):
+        tensor = self.visit(node.left, probs)
+        dim = node.right.value if node.right is not None else -1
+        return tensor.min(dim)[0]
+
+    def visit_ExistsAlong(self, node, probs):
+        tensor = self.visit(node.left, probs)
+        dim = node.right.value if node.right is not None else -1
+        return tensor.max(dim)[0]
+
 
 class GodelTNormLogicSolver(ASTLogicSolver):
 
     def loss(self, *logits, **kwargs):
         bool_tree = self.get_bool_tree()
         probs = [torch.softmax(logits[i], dim=-1) for i in range(len(logits))]
-        return -GodelTNormVisitor().visit(bool_tree, probs).log()
+        rs = -GodelTNormVisitor().visit(bool_tree, probs).log()
+        while len(rs.shape) > 2 and rs.shape[-1] == 1:
+            rs = rs.squeeze(-1)
+        return rs

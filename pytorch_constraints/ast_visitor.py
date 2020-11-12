@@ -137,8 +137,6 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
                 return Forall(self.visit(node.args[0]))
             if fname == 'any':
                 return Exists(self.visit(node.args[0]))
-            if fname == 'all':
-                return Forall(self.visit(node.args[0]))
         elif isinstance(node.func, ast.Attribute):
             fname = node.func.attr
             args = []
@@ -152,6 +150,11 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
                 return And(*args)
             if fname == 'logical_or':
                 return Or(*args)
+            if fname == 'all':
+                return ForallAlong(self.visit(node.func.value), self.visit(node.args[0]) if len(node.args) >= 1 else None)
+            if fname == 'exists':
+                return ExistsAlong(self.visit(node.func.value), self.visit(node.args[0]) if len(node.args) >= 1 else None)
+            # falling back to torch funcs
         raise NotImplementedError(node)
 
     def visit_NameConstant(self, node):
