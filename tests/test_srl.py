@@ -12,7 +12,8 @@ LABEL_TO_ID = {p: i for i, p in enumerate(LABELS)}
 # TODO, add more solvers
 def get_solvers(num_samples):
     # Luka is not here since we will use a constraint with a large conjunction
-    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver()]
+    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
+    #return [WeightedSamplingSolver(num_samples)]
 
 
 class SRL_NET(torch.nn.Module):
@@ -55,6 +56,22 @@ def unique_role(y, y_ext):
     b_a3 = (y == 6) <= (not (y_ext == 6)).all(2)
     return b_a0 and b_a1 and b_a2 and b_a3
 
+# only meant for SamplingSolver
+# y has size (batch_size, seq_len) representing discrete labels
+def unique_role_sampling(y):
+    #   y_ext has size (batch_size, seq_len, seq_len) representing discrete labels as well,
+    #       and the diagonal of the last two dims are masked out by -inf
+    #   Note that y_ext has to be created here, otherwise it will be sampled in sampling solver.
+    batch_l, seq_l = y.shape
+    diag = 1 - torch.eye(seq_l).view(1, seq_l, seq_l).expand(batch_l, seq_l, seq_l)
+    y_ext = y * diag
+
+    b_a0 = (y == 1) <= (y_ext == 1).logical_not().all(2)    # can't do -1, needs ast.USub; and can't do all() since IsEq doesn't squeeze
+    b_a1 = (y == 3) <= (y_ext == 3).logical_not().all(2)
+    b_a2 = (y == 5) <= (y_ext == 5).logical_not().all(2)
+    b_a3 = (y == 6) <= (y_ext == 6).logical_not().all(2)
+    return b_a0.logical_and(b_a1).logical_and(b_a2).logical_and(b_a3)
+
 # inputs are binary masks where 1 is the spiked label and 0's are the rest
 def unique_role_check(y_mask):
     batch_l, seq_l = y_mask.shape
@@ -82,12 +99,17 @@ def train(data, constraint):
 
         yloss = F.cross_entropy(logits.view(-1, num_label), y.view(-1))
 
-        # make logit tensor ready for the constraint func
-        logits_ext = logits.unsqueeze(2).expand(batch_l, seq_l, seq_l, num_label)
-        diag_mask = torch.eye(seq_l).view(1, seq_l, seq_l, 1).expand_as(logits_ext)
-        logits_ext = logits_ext + diag_mask * -1e6
+        if constraint.cond == unique_role_sampling:
+            closs = constraint(logits)
 
-        closs = constraint(logits, logits_ext)
+        elif constraint.cond == unique_role:
+            # make logit tensor ready for the constraint func
+            logits_ext = logits.unsqueeze(2).expand(batch_l, seq_l, seq_l, num_label)
+            diag_mask = torch.eye(seq_l).view(1, seq_l, seq_l, 1).expand_as(logits_ext)
+            logits_ext = logits_ext + diag_mask * -1e6
+            closs = constraint(logits, logits_ext)
+        else:
+            raise Exception('unrecognized constraint function.')
 
         loss = 0.5 * closs + 0.95 * yloss
 
@@ -102,7 +124,7 @@ def test_srl():
 
     for solver in get_solvers(num_samples=50):
 
-        constr_func = unique_role
+        constr_func = unique_role_sampling if isinstance(solver, WeightedSamplingSolver) else unique_role
 
         cons = constraint(constr_func, solver)
         srl = train([tokens, y], cons)
