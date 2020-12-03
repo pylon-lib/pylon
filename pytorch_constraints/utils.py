@@ -1,5 +1,5 @@
 import torch
-
+import warnings
 
 def decoding_loss(values, log_probs):
     '''Loss for a single decoded value of the variables.'''
@@ -22,6 +22,10 @@ def decoding_loss(values, log_probs):
         #       and the result loss should have shape (N,...,)
         #   In general, within this function, there is no good clue which use cases the inputs come from.
         #       So, here it only gathers (and thus squeezes the last dim). And the rest is to be handled outside of this func
-        loss += log_probs[i].gather(-1, values[i].unsqueeze(-1)).squeeze(-1)
+        loss_i = log_probs[i].gather(-1, values[i].unsqueeze(-1)).squeeze(-1)
+        try:
+            loss += loss_i
+        except RuntimeError as e:
+            warnings.warn('Only using the first input tensor to compute loss (of shape {0}) as the {1}-th tensor resulted a mismatched loss shape {2}.'.format(loss.shape, i, loss_i.shape))
 
     return loss

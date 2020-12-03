@@ -54,28 +54,16 @@ class NLI_Net(torch.nn.Module):
 def transitivity(ph_batch, hz_batch, pz_batch):
     # TODO, can't do this:
     # ENT = LABEL_TO_ID['Entailment']
-    # (ph_batch[ENT] and hz_batch[ENT]) <= pz_batch[ENT]
-    ee_e = (ph_batch == 0 and hz_batch == 0) <= (pz_batch == 0)
-    ec_c = (ph_batch == 0 and hz_batch == 1) <= (pz_batch == 1)
-    ne_notc = (ph_batch == 2 and hz_batch == 0) <= (not (pz_batch == 1))
-    nc_note = (ph_batch == 2 and hz_batch == 1) <= (not (pz_batch == 0))
+    ee_e = (ph_batch == 0).logical_and(hz_batch == 0) <= (pz_batch == 0)
+    ec_c = (ph_batch == 0).logical_and(hz_batch == 1) <= (pz_batch == 1)
+    ne_notc = (ph_batch == 2).logical_and(hz_batch == 0) <= (pz_batch == 1).logical_not()
+    nc_note = (ph_batch == 2).logical_and(hz_batch == 1) <= (pz_batch == 0).logical_not()
     # just block Neu and Neu -> Neu and force it to change
-    block_safezone = (ph_batch == 2 and hz_batch == 2) <= (not (pz_batch == 2))
-    return ee_e and ec_c and ne_notc and nc_note and block_safezone
+    block_safezone = (ph_batch == 2).logical_and(hz_batch == 2) <= (pz_batch == 2).logical_not()
+    return ee_e.logical_and(ec_c).logical_and(ne_notc).logical_and(nc_note).logical_and(block_safezone)
 
-# unzip and zip version for transitivity
-#   only meant for SamplingSolver
-#   each batch of size (batch_size,) representing discrete labels
 def transitivity_sampling(ph_batch, hz_batch, pz_batch):
-    out = []
-    for ph, hz, pz in zip(ph_batch, hz_batch, pz_batch):
-        ee_e = (ph == 0 and hz == 0) <= (pz == 0)
-        ec_c = (ph == 0 and hz == 1) <= (pz == 1)
-        ne_notc = (ph == 2 and hz == 0) <= (not (pz == 1))
-        nc_note = (ph == 2 and hz == 1) <= (not (pz == 0))
-        block_safezone = (ph == 2 and hz == 2) <= (not (pz == 2))
-        out += [ee_e and ec_c and ne_notc and nc_note and block_safezone]
-    return torch.tensor(out)
+    return transitivity(ph_batch, hz_batch, pz_batch)
     
 
 # inputs are binary masks where 1 is the spiked label and 0's are the rest
