@@ -133,7 +133,20 @@ class ILPSolver(ASTLogicSolver):
         return sln
 
     def sample(self, *probs):
-        return [self.inference(*probs), ]
+        # batch mode: probs: argument(list), batch, varible, value
+        # single mode: probs: argument(list), varible, value
+        mode_shape_lens = set([len(prob.shape) for prob in probs])
+        assert len(mode_shape_lens) == 1
+        mode_shape_len = mode_shape_lens.pop()
+        if mode_shape_len == 3:
+            # batch mode:
+            batch_probs = list(zip(*probs))
+            return [self.inference(*probs_) for probs_ in batch_probs]
+        elif mode_shape_len == 2:
+            # single mode:
+            return [self.inference(*probs), ]
+        else:
+            raise ValueError('Unknown {mode_shape_len}-dimensional tensor. 3-dim or 2-dim tensor expected.')
 
     def loss(self, *logits, targets=None):
         if not isinstance(targets, tuple) and targets is not None:

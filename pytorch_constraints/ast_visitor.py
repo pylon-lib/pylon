@@ -86,9 +86,18 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
             print("eval:", source, "->", value)
             return Const(value)
 
+    def visit_Index(self, node):
+        return self.visit(node.value)
+
+    def visit_Slice(self, node):
+        return Slice(node.lower, node.step, node.upper)
+
+    def visit_ExtSlice(self, node):
+        return ExtSlice([self.visit(dim) for dim in node.dims])
+
     def visit_Subscript(self, node):
         arg = self.visit(node.value)
-        select = self.visit(node.slice.value)
+        select = self.visit(node.slice)
         # woah, arg itself is a constant? select better be one too!
         if isinstance(arg, Const):
             assert isinstance(select, Const)
@@ -100,6 +109,10 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
         elif isinstance(select, List):
             assert all([isinstance(e, Const) for e in select.elts])
             return VarList(arg, [e.value for e in select.elts])
+        # selected using ExtSlice, which is a python list of slice/index
+        elif isinstance(select, ExtSlice):
+            assert all([isinstance(e, (Const, Slice)) for e in select.slices])
+            return VarList(arg, select)
         else:
             # the selection itself has tensor vars!
             return VarCond(arg, select)
@@ -124,16 +137,24 @@ class LogicExpressionASTVisitor(ast.NodeVisitor):
                 return Forall(self.visit(node.args[0]))
             if fname == 'any':
                 return Exists(self.visit(node.args[0]))
-            if fname == 'all':
-                return Forall(self.visit(node.args[0]))
         elif isinstance(node.func, ast.Attribute):
             fname = node.func.attr
+            args = []
+            caller = self.visit(node.func.value)
+            if not (isinstance(caller, Const) and caller.value == torch):
+                args.append(caller)
+            args.extend(map(self.visit, node.args))
             if fname == 'logical_not':
-                return Not(self.visit(node.func.value))
+                return Not(*args)
             if fname == 'logical_and':
-                return And(self.visit(node.func.value), self.visit(node.args[0]))
+                return And(*args)
             if fname == 'logical_or':
-                return Or(self.visit(node.func.value), self.visit(node.args[0]))
+                return Or(*args)
+            if fname == 'all':
+                return ForallAlong(self.visit(node.func.value), self.visit(node.args[0]) if len(node.args) >= 1 else None)
+            if fname == 'exists':
+                return ExistsAlong(self.visit(node.func.value), self.visit(node.args[0]) if len(node.args) >= 1 else None)
+            # falling back to torch funcs
         raise NotImplementedError(node)
 
     def visit_NameConstant(self, node):

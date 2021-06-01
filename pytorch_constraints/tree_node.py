@@ -91,6 +91,14 @@ class Exists(TreeNode):
         self.expr = expr
         super().__init__("Exists", [expr])
 
+class ForallAlong(BinaryOp):
+    def __init__(self, left, right):
+        super().__init__("ForallAlong", left, right)
+
+class ExistsAlong(BinaryOp):
+    def __init__(self, left, right):
+        super().__init__("ExistsAlong", left, right)
+
 
 class List(TreeNode):
     def __init__(self, elts):
@@ -120,7 +128,50 @@ class VarList(TreeNode):
         super().__init__(str(arg) + '[' + str(self.indices) + "]", [])
 
     def probs(self, probs):
+        if isinstance(self.indices, ExtSlice):
+            rs = self.indices.probs(probs[self.arg.arg_pos])
+            return rs
         return probs[self.arg.arg_pos][self.indices, :]
+
+
+class Slice(TreeNode):
+    def __init__(self, lower, step, upper):
+        self.lower = lower
+        self.step = step
+        self.upper = upper
+        super().__init__(f"{lower if lower is not None else ''}:"
+                         f"{upper if upper is not None else ''}:"
+                         f"{step if step is not None else ''}", [])
+
+
+class ExtSlice(TreeNode):
+    def __init__(self, slices):
+        self.slices = slices
+        super().__init__(", ".join(map(str, slices)), [])
+
+    def probs(self, probs):
+        # do iterative indexing
+        #   TODO, needs better support for ellipsis ('...')
+        dim=0
+        dims_to_squeeze = []
+        for s in self.slices:
+            if isinstance(s, Slice):
+                # we might have to enumerate all 8 possibilities here
+                if s.step is not None:
+                    raise Exception('Slice with specified step is not yet supported.')
+                start = s.lower.value if s.lower is not None else 0
+                end = s.upper.value if s.upper is not None else probs.shape[dim]
+                probs = probs.narrow(dim, start, end-start)
+            elif isinstance(s, Const):
+                probs = probs.narrow(dim, s.value, 1)
+                dims_to_squeeze.append(dim)
+            else:
+                raise Exception('Unsupported slice type: ', type(s))
+            dim += 1
+
+        for dim in dims_to_squeeze[::-1]:
+            probs = probs.squeeze(dim)
+        return probs
 
 
 class VarCond(TreeNode):

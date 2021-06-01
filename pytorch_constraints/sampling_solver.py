@@ -55,6 +55,14 @@ class SamplingSolver(Solver):
         # TODO: remove extraneous torch.tensor wrapping. Currently in place for XOR example
         indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples])
 
+        # decide whether to squeeze the last dim of losses
+        #   the sizeof indices indicates whether the input is batched or not
+        #   this can help to determin whether losses should be further aggregated
+        if indices.shape != losses.shape:
+            losses = losses.sum(-1)
+        if indices.shape != losses.shape:
+            raise Exception("Weird loss shape {0}, doesn't match label samples shape {1}.".format(losses.shape, indices.shape))
+
         sat_losses = losses.clone()
         sat_losses[~indices] = -float('inf')
 
