@@ -27,7 +27,7 @@ class BruteForceSolver(Solver):
             decodings = decodings.view(-1, *shapes[i][1:-1])
             decodings = decodings.unsqueeze(1).expand(decodings.shape[0],\
                     batch_size, *decodings.shape[1:])
-            all_decodings += [decoding]
+            all_decodings += [decodings]
 
         all_decodings = list(itertools.product(*all_decodings))
         return all_decodings
