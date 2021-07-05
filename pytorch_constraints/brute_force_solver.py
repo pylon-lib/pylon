@@ -15,19 +15,22 @@ class BruteForceSolver(Solver):
         shapes = [log_probs[i].shape for i in range(llgprbs)]
 
         batch_size = shapes[0][0]
+        num_classes = shapes[0][-1]
 
         # values: tuple of 1D tensors; values[i].shape: number of classes for
         # the classifier corresponding to log_probs[i]
-        decodings =  tuple(torch.tensor(range(shapes[i][-1])) for i in range(llgprbs))
+        all_decodings = []
+        for i in range(llgprbs):
+            num_tensors = torch.prod(torch.tensor(shapes[i][1:-1]))
+            decodings = num_tensors * [torch.arange(shapes[i][-1])]
+            decodings = torch.cartesian_prod(*decodings)
+            decodings = decodings.view(-1, *shapes[i][1:-1])
+            decodings = decodings.unsqueeze(1).expand(decodings.shape[0],\
+                    batch_size, *decodings.shape[1:])
+            all_decodings += [decoding]
 
-        # Shape: \prod_i num_class_i
-        decodings = torch.cartesian_prod(*decodings)
-
-        # Reshaping
-        decodings = decodings.unsqueeze(-1).expand(-1, -1, batch_size)
-        decodings = [decoding.unbind(0) for decoding in decodings]
-
-        return decodings
+        all_decodings = list(itertools.product(*all_decodings))
+        return all_decodings
 
     def filter(self, value):
         '''Which variable values should we compute the loss over.'''
@@ -40,12 +43,12 @@ class BruteForceSolver(Solver):
     def loss(self, *logits, **kwargs):
 
         log_probs = [torch.log_softmax(logits[i], dim=-1) for i in range(len(logits))]
-        batch_size = log_probs[0].shape[0] 
 
         # Get all possible decodings
         samples = self.all_samples(log_probs)
 
-        indices = torch.stack([self.cond(*sample, kwargs) for sample in samples])
+        indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) if kwargs == {}
+            else torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples ])
 
         losses = torch.stack([decoding_loss(sample, log_probs) for sample in samples])
 
