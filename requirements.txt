@@ -3,3 +3,8 @@ torch==1.5.1
 pySDD==0.2.10
 pulp==2.3
 astor==0.8
+matplotlib
+torchvision
+tqdm
+datasets
+transformers
