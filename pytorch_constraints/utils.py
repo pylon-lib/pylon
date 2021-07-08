@@ -17,9 +17,10 @@ def decoding_loss(values, log_probs):
         # decoding.
 
         # Shape of loss: batch_size x ...
-        loss += log_prob.gather(-1, value.unsqueeze(-1)).squeeze(-1)
+        loss += log_prob.gather(-1, value.unsqueeze(-1))\
+                .squeeze(-1).view(bsz, -1).sum(-1)
 
     # Reduce the tensor across the extraneous dimensions;
     # this corresponds to calculating the log probability
     # of that decoding of the combinatorial object
-    return loss.view(bsz, -1).sum(-1)
+    return loss
