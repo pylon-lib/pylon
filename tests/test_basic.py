@@ -1,3 +1,6 @@
+import sys
+sys.path.append("/space/ahmedk/wtf")
+
 from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import *
@@ -30,7 +33,6 @@ class Net(torch.nn.Module):
 def train(net, constraint=None, epoch=100):
     x = torch.tensor([1.0])
     y = torch.tensor([0, 1])
-    y0 = F.softmax(net(x), dim=-1)
     opt = torch.optim.SGD(net.parameters(), lr=0.1)
 
     for _ in range(100):
@@ -38,10 +40,11 @@ def train(net, constraint=None, epoch=100):
         y_logit = net(x)
         loss = F.cross_entropy(y_logit[1:], y[1:])
         if constraint is not None:
-            loss += constraint(y_logit)
+            loss += constraint(y_logit.unsqueeze(0))
         loss.backward()
         opt.step()
 
+    y0 = F.softmax(net(x), dim=-1)
     return net, y0
 
 
@@ -61,7 +64,7 @@ a = {"key": 1}
 
 
 def xor(y):
-    return (y[0] and not y[a['key']]) or (not y[0] and y[a['key']])
+    return (y[:, 0] and y[:, a['key']].logical_not()) or (y[:, 0].logical_not() and y[:, a['key']])
 
 
 def test_basic_binary(net_binary):
@@ -88,13 +91,13 @@ def get_tnorm_solvers():
 
 def get_sampling_solvers(num_samples):
     return [
-        #SatisfactionBruteForceSolver(), ViolationBruteForceSolver(),
+        #SatisfactionBruteForceSolver(), 
         SamplingSolver(num_samples), WeightedSamplingSolver(num_samples)
     ]
 
 
 def get_solvers(num_samples):
-    return get_sampling_solvers(num_samples) + [SemanticLossCircuitSolver(), ILPSolver()] + get_tnorm_solvers()
+    return get_sampling_solvers(num_samples) #+ [SemanticLossCircuitSolver()] #+ get_tnorm_solvers()
 
 
 def test_xor_binary(net_binary):
@@ -142,7 +145,7 @@ def test_or_binary(net_binary):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] or y[1], solver)
+            cons = constraint(lambda y: y[:, 0] or y[:, 1], solver)
 
             net, y0 = train(net_binary, cons)
             x = torch.tensor([1.0])
@@ -161,7 +164,7 @@ def test_or_multi(net_multi):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] or y[1], solver)
+            cons = constraint(lambda y: y[:, 0] or y[:, 1], solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -180,7 +183,7 @@ def test_eq_multi(net_multi):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] == y[1], solver)
+            cons = constraint(lambda y: y[:, 0] == y[:, 1], solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -199,7 +202,7 @@ def test_neq_multi(net_multi):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] != y[1], solver)
+            cons = constraint(lambda y: y[:, 0] != y[:, 1], solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -218,7 +221,7 @@ def test_logical_and_multi(net_multi):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] and y[1], solver)
+            cons = constraint(lambda y: y[:, 0] and y[:, 1], solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -239,7 +242,7 @@ def test_implication_multi(net_multi):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: y[0] <= y[1], solver)
+            cons = constraint(lambda y: y[:, 0] <= y[:, 1], solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -258,7 +261,7 @@ def test_quant_forall_list(net_binary):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: all([y[0], y[1]]), solver)
+            cons = constraint(lambda y: all([y[:, 0], y[:, 1]]), solver)
 
             net, y0 = train(net_binary, cons)
             x = torch.tensor([1.0])
@@ -277,7 +280,7 @@ def test_quant_forall_list_wnegs(net_binary):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: all([not y[0], y[1]]), solver)
+            cons = constraint(lambda y: all([y[:, 0].logical_not(), y[:, 1]]), solver)
 
             net, y0 = train(net_binary, cons)
             x = torch.tensor([1.0])
@@ -296,7 +299,7 @@ def test_quant_exists_list(net_binary):
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: any([y[0], not y[1]]), solver)
+            cons = constraint(lambda y: any([y[:, 0], y[:, 1].logical_not()]), solver)
 
             net, y0 = train(net_binary, cons)
             x = torch.tensor([1.0])
@@ -307,15 +310,14 @@ def test_quant_exists_list(net_binary):
 
         assert success == num_tries
 
-
 def test_quant_forall_var(net_binary):
-    solvers = get_sampling_solvers(num_samples=20) + get_tnorm_solvers()
+    solvers = get_sampling_solvers(num_samples=20) #+ get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: all(y), solver)
+            cons = constraint(lambda y: torch.all(y.bool()), solver)
 
             net, y0 = train(net_binary, cons)
             x = torch.tensor([1.0])
@@ -328,13 +330,13 @@ def test_quant_forall_var(net_binary):
 
 
 def test_quant_forall_cond(net_multi):
-    solvers = get_sampling_solvers(num_samples=20) + get_tnorm_solvers()
+    solvers = get_sampling_solvers(num_samples=20) #+ get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: all(y == 1), solver)
+            cons = constraint(lambda y: torch.all(y == 1, dim=1), solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -347,13 +349,13 @@ def test_quant_forall_cond(net_multi):
 
 
 def test_quant_exists_cond(net_multi):
-    solvers = get_sampling_solvers(num_samples=20) + get_tnorm_solvers()
+    solvers = get_sampling_solvers(num_samples=20) #+ get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: any(y == 2), solver)
+            cons = constraint(lambda y: torch.any(y == 2, dim=1), solver)
 
             net, y0 = train(net_multi, cons)
             x = torch.tensor([1.0])
@@ -366,13 +368,13 @@ def test_quant_exists_cond(net_multi):
 
 
 def test_quant_exists_var(net_binary):
-    solvers = get_sampling_solvers(num_samples=20) + get_tnorm_solvers()
+    solvers = get_sampling_solvers(num_samples=20) #+ get_tnorm_solvers()
     for solver in solvers:
         print("Testing", type(solver).__name__)
         num_tries = 5  # since it's random
         success = 0
         for i in range(num_tries):
-            cons = constraint(lambda y: any(y.logical_not()), solver)
+            cons = constraint(lambda y: torch.any(y.logical_not()), solver)
 
             net, y0 = train(net_binary, cons)
             x = torch.tensor([1.0])
