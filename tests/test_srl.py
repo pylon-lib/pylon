@@ -57,7 +57,7 @@ def unique_role(y, y_ext):
     b_a1 = (y == 3) <= (y_ext == 3).logical_not().all(2)
     b_a2 = (y == 5) <= (y_ext == 5).logical_not().all(2)
     b_a3 = (y == 6) <= (y_ext == 6).logical_not().all(2)
-    return b_a0.logical_and(b_a1).logical_and(b_a2).logical_and(b_a3)
+    return b_a0.logical_and(b_a1).logical_and(b_a2).logical_and(b_a3).all(1)
 
 
 def unique_role_sampling(y, y_ext):
@@ -122,7 +122,7 @@ def train(data, constraint):
 
     return srl
 
-@pytest.mark.skip(reason="Does not conform to expected output shape of constraint function")
+#@pytest.mark.skip(reason="Does not conform to expected output shape of constraint function")
 def test_srl():
     tokens, y = get_data()
 
@@ -135,7 +135,6 @@ def test_srl():
 
         y_ = torch.softmax(srl(tokens).view(-1, len(LABEL_TO_ID)), dim=-1)
         y_mask = (y_ == y_.max(-1)[0].unsqueeze(-1))
-        print(y_mask)
         
         unique_role_check(y_mask)
 
@@ -143,7 +142,7 @@ def test_srl():
 def get_data():
     toks = torch.tensor([[32, 1973, 2272,   15,    3,    10,    0,    5,    0,  389]])
 
-    y = torch.tensor([[0, 1, 2, 2, 0, 7, 0, 0, 3, 4]])
+    y = torch.tensor([[0, 1, 2, 2, 0, 7, 0, 1, 3, 4]])
 
     return toks, y
 
