@@ -1,5 +1,5 @@
 numpy==1.18.5
-torch==1.5.1
+torch==1.9.0
 pySDD==0.2.10
 pulp==2.3
 astor==0.8
