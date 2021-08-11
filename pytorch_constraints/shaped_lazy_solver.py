@@ -124,6 +124,15 @@ class TNormSolver(Solver):
             torch.Tensor.max: lambda: lv.max(rv) if rv is not None else lv.max(),
             torch.Tensor.sum: lambda: lv.sum(rv) if rv is not None else lv.sum(),
             torch.Tensor.logsumexp: lambda: lv.logsumexp(rv),
+            torch.Tensor.float: lambda: lv.float(),
+            torch.Tensor.half: lambda: lv.half(),
+            torch.Tensor.double: lambda: lv.double(),
+            torch.Tensor.int: lambda: lv.int(),
+            torch.Tensor.long: lambda: lv.long(),
+            torch.Tensor.short: lambda: lv.short(),
+            torch.Tensor.byte: lambda: lv.byte(),
+            torch.Tensor.bool: lambda: lv.bool(),
+            torch.Tensor.masked_select: lambda: lv.masked_select(rv),
             # torch.xxx calls where lv is None
             torch.zeros: lambda: torch.zeros(*rv),
             torch.ones: lambda: torch.ones(*rv),
@@ -152,6 +161,7 @@ class TNormSolver(Solver):
             torch.sigmoid: lambda: rv[0].sigmoid(),
             torch.softmax: lambda: rv[0].softmax(rv[1]),
             torch.logsumexp: lambda: rv[0].logsumexp(rv[1]),
+            torch.masked_select: lambda: rv[0].masked_select(rv[1]),
         }, lv, rv
 
     @abstractmethod

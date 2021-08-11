@@ -86,10 +86,13 @@ def relu(tensor):
 def sigmoid(tensor):
 	return new_lazy_tensor(torch.sigmoid, (None, tensor))
 
-def softmax(tensor):
+def softmax(tensor, dim):
 	return new_lazy_tensor(torch.softmax, (None, tensor, dim))
 
 def logsumexp(tensor, dim):
 	return new_lazy_tensor(torch.logsumexp, (None, tensor, dim))
+
+def masked_select(tensor, mask):
+	return new_lazy_tensor(torch.masked_select, (None, tensor, mask))
 
 # TODO, add other interfaces like gather

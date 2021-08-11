@@ -106,6 +106,33 @@ class AbstractLazyTensor(ABC):
     def logsumexp(self, arg):
         return new_lazy_tensor(torch.Tensor.logsumexp, [self, arg])
 
+    def masked_select(self, arg):
+        return new_lazy_tensor(torch.Tensor.masked_select, [self, arg])        
+
+    def float(self):
+        return new_lazy_tensor(torch.Tensor.float, [self])
+
+    def half(self):
+        return new_lazy_tensor(torch.Tensor.half, [self])
+
+    def double(self):
+        return new_lazy_tensor(torch.Tensor.double, [self])
+
+    def int(self):
+        return new_lazy_tensor(torch.Tensor.int, [self])
+
+    def short(self):
+        return new_lazy_tensor(torch.Tensor.short, [self])
+
+    def long(self):
+        return new_lazy_tensor(torch.Tensor.long, [self])
+
+    def byte(self):
+        return new_lazy_tensor(torch.Tensor.byte, [self])
+
+    def bool(self):
+        return new_lazy_tensor(torch.Tensor.bool, [self])
+
     def __getitem__(self, key):
         return new_lazy_tensor(torch.Tensor.__getitem__, [self, key])
 
