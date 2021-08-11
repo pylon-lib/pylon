@@ -19,7 +19,9 @@ LABEL_TO_ID = {p: i for i, p in enumerate(LABELS)}
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), WeightedSamplingSolver(num_samples), LazyProductTNormSolver()]
+    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), \
+        WeightedSamplingSolver(num_samples), \
+        LazyProductTNormSolver(), LazyGodelTNormSolver(), LazyLukasiewiczTNormSolver()]
 
 
 class SRL_NET(torch.nn.Module):

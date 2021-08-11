@@ -14,6 +14,12 @@ def eye(length):
 def cat(tensors, dim):
 	return new_lazy_tensor(torch.cat, (None, tensors, dim))
 
+def stack(tensors, dim):
+	return new_lazy_tensor(torch.stack, (None, tensors, dim))
+
+def tile(tensors, shape):
+    return new_lazy_tensor(torch.tile, (None, tensors, shape))
+
 def randn(*shape):
 	return new_lazy_tensor(torch.randn, (None, shape))
 
@@ -34,5 +40,56 @@ def all(tensor, dim=None):
 
 def any(tensor, dim=None):
 	return new_lazy_tensor(torch.any, (None, tensor, dim))
+
+def squeeze(tensor, dim):
+	return new_lazy_tensor(torch.squeeze, (None, tensor, dim))
+
+def unsqueeze(tensor, dim):
+	return new_lazy_tensor(torch.unsqueeze, (None, tensor, dim))
+
+def add(left, right):
+	return new_lazy_tensor(torch.add, (None, left, right))
+
+def sub(left, right):
+	return new_lazy_tensor(torch.sub, (None, left, right))
+
+def mul(left, right):
+	return new_lazy_tensor(torch.mul, (None, left, right))
+
+def div(left, right):
+	return new_lazy_tensor(torch.div, (None, left, right))
+
+def floor_divide(left, right):
+	return new_lazy_tensor(torch.floor_divide, (None, left, right))	
+
+def sqrt(tensor):
+	return new_lazy_tensor(torch.sqrt, (None, tensor))
+
+def rsqrt(tensor):
+	return new_lazy_tensor(torch.rsqrt, (None, tensor))
+
+def mm(left, right):
+	return new_lazy_tensor(torch.mm, (None, left, right))
+
+def bmm(left, right):
+	return new_lazy_tensor(torch.bmm, (None, left, right))
+
+def log(tensor):
+	return new_lazy_tensor(torch.log, (None, tensor))
+
+def exp(tensor):
+	return new_lazy_tensor(torch.exp, (None, tensor))
+
+def relu(tensor):
+	return new_lazy_tensor(torch.relu, (None, tensor))
+
+def sigmoid(tensor):
+	return new_lazy_tensor(torch.sigmoid, (None, tensor))
+
+def softmax(tensor):
+	return new_lazy_tensor(torch.softmax, (None, tensor, dim))
+
+def logsumexp(tensor, dim):
+	return new_lazy_tensor(torch.logsumexp, (None, tensor, dim))
 
 # TODO, add other interfaces like gather

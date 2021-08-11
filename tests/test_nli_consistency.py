@@ -18,7 +18,9 @@ NEU = LABEL_TO_ID['Neutral']
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples), LazyProductTNormSolver()]
+    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), \
+        WeightedSamplingSolver(num_samples), \
+        LazyProductTNormSolver(), LazyGodelTNormSolver(), LazyLukasiewiczTNormSolver()]
 
 
 class NLI_Net(torch.nn.Module):

@@ -103,6 +103,9 @@ class AbstractLazyTensor(ABC):
     def exp(self):
         return new_lazy_tensor(torch.Tensor.exp, [self])
 
+    def logsumexp(self, arg):
+        return new_lazy_tensor(torch.Tensor.logsumexp, [self, arg])
+
     def __getitem__(self, key):
         return new_lazy_tensor(torch.Tensor.__getitem__, [self, key])
 
