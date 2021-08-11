@@ -36,7 +36,7 @@ class TNormSolver(Solver):
         rv = None
 
         # eq and indexing needs special handling
-        if len(args) == 2 and function in [torch.eq, torch.Tensor.__getitem__]:
+        if lv is not None and len(args) == 2 and function in [torch.eq, torch.Tensor.__getitem__]:
             rv = self.visit(args[1])(probs) if isinstance(args[1], LazyTensor) else args[1]
             # torch.Tensor.__getitem__
             if function == torch.Tensor.__getitem__:
