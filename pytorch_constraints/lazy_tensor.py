@@ -19,14 +19,89 @@ class AbstractLazyTensor(ABC):
     def logical_xor(self, arg):
         return new_lazy_tensor(torch.logical_xor, [self, arg])
 
-    def all(self):
-        return new_lazy_tensor(torch.all, [self])
-
-    def sum(self, dim):
+    def sum(self, dim=None):
         return new_lazy_tensor(torch.sum, (self, dim))
 
     def softmax(self, dim):
-        return new_lazy_tensor(torch.nn.functional.softmax, (self, dim))
+        return new_lazy_tensor(torch.Tensor.softmax, (self, dim))
+
+    def sigmoid(self):
+        return new_lazy_tensor(torch.Tensor.sigmoid, (self))
+
+    def relu(self):
+        return new_lazy_tensor(torch.Tensor.relu, (self))
+
+    def min(self, dim=None):
+        return new_lazy_tensor(torch.Tensor.min, (self, dim))
+
+    def max(self, dim=None):
+        return new_lazy_tensor(torch.Tensor.max, (self, dim))
+
+    def all(self, dim):
+        return new_lazy_tensor(torch.all, (self, dim))
+
+    def any(self, dim):
+        return new_lazy_tensor(torch.any, (self, dim))
+
+    def squeeze(self, dim):
+        return new_lazy_tensor(torch.Tensor.squeeze, (self,))
+
+    def unsqueeze(self, dim):
+        return new_lazy_tensor(torch.Tensor.unsqueeze, (self, dim))
+
+    def clone(self):
+        return new_lazy_tensor(torch.clone, (self, None))
+
+    def expand_as(self, arg):
+        return new_lazy_tensor(torch.Tensor.expand_as, (self, arg))
+
+    def size(self):
+        return new_lazy_tensor(torch.Tensor.size, (self,))
+
+    def diagonal(self, offset, dim1, dim2):
+        return new_lazy_tensor(torch.Tensor.diagonal, (self, offset, dim1, dim2))
+
+    def zero_(self):
+        raise Exception('in-place operation not supported.')
+
+    def add_(self, arg):
+        raise Exception('in-place operation not supported.')
+
+    def sub_(self, arg):
+        raise Exception('in-place operation not supported.')
+
+    def mul_(self, arg):
+        raise Exception('in-place operation not supported.')
+
+    def div_(self, arg):
+        raise Exception('in-place operation not supported.')
+
+    def tile(self, *arg):
+        return new_lazy_tensor(torch.Tensor.tile, (self, *arg))
+
+    def add(self, arg):
+        return new_lazy_tensor(torch.Tensor.add, (self, arg))
+
+    def sub(self, arg):
+        return new_lazy_tensor(torch.Tensor.sub, (self, arg))
+
+    def mul(self, arg):
+        return new_lazy_tensor(torch.Tensor.multiply, (self, arg))
+
+    def div(self, arg):
+        return new_lazy_tensor(torch.Tensor.div, (self, arg))
+
+    def bmm(self, arg):
+        return new_lazy_tensor(torch.Tensor.bmm, (self, arg))
+
+    def mm(self, arg):
+        return new_lazy_tensor(torch.Tensor.mm, (self, arg))
+
+    def log(self):
+        return new_lazy_tensor(torch.Tensor.log, [self])
+
+    def exp(self):
+        return new_lazy_tensor(torch.Tensor.exp, [self])
 
     def __getitem__(self, key):
         return new_lazy_tensor(torch.Tensor.__getitem__, [self, key])
@@ -44,22 +119,22 @@ class AbstractLazyTensor(ABC):
         return new_lazy_tensor(torch.eq, [self, other])
 
     def __add__(self, other):
-        return new_lazy_tensor(torch.add, (self, other))
+        return new_lazy_tensor(torch.Tensor.add, (self, other))
 
     def __sub__(self, other):
-        return new_lazy_tensor(torch.sub, (self, other))
+        return new_lazy_tensor(torch.Tensor.sub, (self, other))
 
     def __mul__(self, other):
-        return new_lazy_tensor(torch.mul, (self, other))
+        return new_lazy_tensor(torch.Tensor.mul, (self, other))
 
     def __truediv__(self, other):
-        return new_lazy_tensor(torch.div, (self, other))
+        return new_lazy_tensor(torch.Tensor.div, (self, other))
 
     def __floordiv__(self, other):
-        return new_lazy_tensor(torch.floor_divide, (self, other))
+        return new_lazy_tensor(torch.Tensor.floor_divide, (self, other))
 
     def __mod__(self, other):
-        return new_lazy_tensor(torch.remainder, (self, other))
+        return new_lazy_tensor(torch.Tensor.remainder, (self, other))
 
     def __lshift__(self, other):
         raise NotImplemented
@@ -70,16 +145,22 @@ class AbstractLazyTensor(ABC):
         # return new_lazy_tensor(torch., (self, other))
 
     def __and__(self, other):
-        return new_lazy_tensor(torch.bitwise_and, (self, other))
+        return new_lazy_tensor(torch.Tensor.bitwise_and, (self, other))
 
     def __or__(self, other):
-        return new_lazy_tensor(torch.bitwise_or, (self, other))
+        return new_lazy_tensor(torch.Tensor.bitwise_or, (self, other))
 
     def __xor__(self, other):
-        return new_lazy_tensor(torch.bitwise_xor, (self, other))
+        return new_lazy_tensor(torch.Tensor.bitwise_xor, (self, other))
 
     def __invert__(self, other):
-        return new_lazy_tensor(torch.bitwise_not, (self, other))
+        return new_lazy_tensor(torch.Tensor.bitwise_not, (self, other))
+
+    def __le__(self, other):
+        return new_lazy_tensor(torch.le, (self, other))
+
+    def __ge__(self, other):
+        return new_lazy_tensor(torch.le, (other, self))
 
     @abstractmethod
     def __str__(self, level=0):
