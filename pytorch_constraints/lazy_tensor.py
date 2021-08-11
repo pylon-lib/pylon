@@ -8,19 +8,19 @@ def new_lazy_tensor(function, args):
 
 class AbstractLazyTensor(ABC):
     def logical_not(self):
-        return new_lazy_tensor(torch.logical_not, [self])
+        return new_lazy_tensor(torch.Tensor.logical_not, [self])
 
     def logical_and(self, arg):
-        return new_lazy_tensor(torch.logical_and, [self, arg])
+        return new_lazy_tensor(torch.Tensor.logical_and, [self, arg])
 
     def logical_or(self, arg):
-        return new_lazy_tensor(torch.logical_or, [self, arg])
+        return new_lazy_tensor(torch.Tensor.logical_or, [self, arg])
 
     def logical_xor(self, arg):
-        return new_lazy_tensor(torch.logical_xor, [self, arg])
+        return new_lazy_tensor(torch.Tensor.logical_xor, [self, arg])
 
     def sum(self, dim=None):
-        return new_lazy_tensor(torch.sum, (self, dim))
+        return new_lazy_tensor(torch.Tensor.sum, (self, dim))
 
     def softmax(self, dim):
         return new_lazy_tensor(torch.Tensor.softmax, (self, dim))
@@ -38,10 +38,10 @@ class AbstractLazyTensor(ABC):
         return new_lazy_tensor(torch.Tensor.max, (self, dim))
 
     def all(self, dim):
-        return new_lazy_tensor(torch.all, (self, dim))
+        return new_lazy_tensor(torch.Tensor.all, (self, dim))
 
     def any(self, dim):
-        return new_lazy_tensor(torch.any, (self, dim))
+        return new_lazy_tensor(torch.Tensor.any, (self, dim))
 
     def squeeze(self, dim):
         return new_lazy_tensor(torch.Tensor.squeeze, (self,))

@@ -25,3 +25,14 @@ def logical_or(left, right):
 
 def logical_not(left):
 	return new_lazy_tensor(torch.logical_xor, (None, left))
+
+def sum(tensor, dim):
+	return new_lazy_tensor(torch.sum, (None, tensor, dim))
+
+def all(tensor, dim=None):
+	return new_lazy_tensor(torch.all, (None, tensor, dim))
+
+def any(tensor, dim=None):
+	return new_lazy_tensor(torch.any, (None, tensor, dim))
+
+# TODO, add other interfaces like gather

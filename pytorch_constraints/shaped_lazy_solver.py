@@ -89,12 +89,13 @@ class TNormSolver(Solver):
 
         return {
             **tnorm_dict,
-            # other default functions
-            torch.logical_not: lambda: 1.0 - lv,
-            torch.logical_and: lambda: lv * rv,
-            torch.ne: lambda: (1 - lv * rv).sum(dim=-1),    # TODO, this is wrong
-            torch.Tensor.size: lambda: lv.size(),
+            #
             torch.clone: lambda: lv.clone(),
+            torch.ne: lambda: (1 - lv * rv).sum(dim=-1),    # TODO, this is wrong
+            # Tensor functions
+            torch.Tensor.logical_not: lambda: 1.0 - lv,
+            torch.Tensor.logical_and: lambda: lv * rv,
+            torch.Tensor.size: lambda: lv.size(),
             torch.Tensor.squeeze: lambda: lv.squeeze(rv),
             torch.Tensor.unsqueeze: lambda: lv.unsqueeze(rv),
             torch.Tensor.expand_as: lambda: lv.expand_as(rv),
@@ -115,17 +116,19 @@ class TNormSolver(Solver):
             torch.Tensor.log: lambda: lv.log(),
             torch.Tensor.exp: lambda: lv.exp(),
             torch.Tensor.tile: lambda: lv.tile(*rv),
-            torch.zeros: lambda: torch.zeros(*rv),
-            torch.ones: lambda: torch.ones(*rv),
-            torch.eye: lambda: torch.eye(rv),
-            torch.cat: lambda: torch.cat(rv[0], dim=rv[1]),  # rv: (tensors, dim)
-            torch.randn: lambda: torch.randn(*rv),
             torch.Tensor.sigmoid: lambda: lv.sigmoid(),
             torch.Tensor.softmax: lambda: lv.softmax(rv),
             torch.Tensor.relu: lambda: lv.relu(),
             torch.Tensor.min: lambda: lv.min(rv) if rv is not None else lv.min(),
             torch.Tensor.max: lambda: lv.max(rv) if rv is not None else lv.max(),
-            torch.Tensor.sum: lambda: lv.sum(rv) if rv is not None else lv.sum()
+            torch.Tensor.sum: lambda: lv.sum(rv) if rv is not None else lv.sum(),
+            # torch.xxx calls where lv is None
+            torch.zeros: lambda: torch.zeros(*rv),
+            torch.ones: lambda: torch.ones(*rv),
+            torch.eye: lambda: torch.eye(rv),
+            torch.cat: lambda: torch.cat(rv[0], dim=rv[1]),  # rv: (tensors, dim)
+            torch.randn: lambda: torch.randn(*rv),
+            torch.Tensor.sum: lambda: rv[0].sum(rv[1]) if rv[1] is not None else rv.sum()
         }, lv, rv
 
     @abstractmethod
@@ -166,54 +169,73 @@ class TNormSolver(Solver):
 
 class ProductTNormSolver(TNormSolver):
     def gettnorm(self, args, function, probs):
+        def AND(t, dim):
+            return t.prod(dim) if dim is not None else t.prod()
+        def OR(t, dim):
+            return (1-(1-t).prod(dim)) if dim is not None else (1-(1-t).prod())
         tnorm_dict, lv, rv  = self.base_tnorm(args, function, probs)
         return {
             **tnorm_dict,
-            torch.logical_not: lambda: 1.0 - lv,
-            torch.logical_and: lambda: lv * rv,
-            torch.logical_or: lambda: lv + rv - lv * rv,
+            torch.Tensor.logical_not: lambda: 1.0 - lv,
+            torch.Tensor.logical_and: lambda: lv * rv,
+            torch.Tensor.logical_or: lambda: lv + rv - lv * rv,
             torch.eq: lambda: (lv * rv).sum(dim=-1),
             torch.ne: lambda: (1 - lv * rv).sum(dim=-1),
             torch.Tensor.__getitem__: lambda: lv[rv],
             torch.le: lambda: 1 - torch.relu(1 - rv / lv),  # lv implies rv
             torch.ge: lambda: 1 - torch.relu(1 - lv / rv),  # rv implies lv
-            torch.all: lambda: lv.prod(rv),  # lv is the tensor, rv is the dim
-            torch.any: lambda: 1 - (1 - lv).prod(rv)
+            torch.Tensor.all: lambda: AND(lv, rv),  # lv is the tensor, rv is the dim
+            torch.Tensor.any: lambda: OR(lv, rv),
+            torch.all: lambda: AND(rv[0], rv[1]),
+            torch.any: lambda: OR(rv[0], rv[1])
         }[function]()
 
 class LukasiewiczTNormSolver(TNormSolver):
     def gettnorm(self, args, function, probs):
+        def AND(t, dim):
+            return (torch.relu(t.sum(dim) - t.shape[dim] + 1)) if dim is not None else (torch.relu(t.sum() - t.numel() + 1))
+        def OR(t, dim):
+            return (1 - torch.relu(1 - t.sum(dim))) if dim is not None else (1 - torch.relu(1 - t.sum()))
         tnorm_dict, lv, rv = self.base_tnorm(args, function, probs)
         return {
             **tnorm_dict,
-            torch.logical_not: lambda: 1.0 - lv,
-            torch.logical_and: lambda: torch.relu(lv + rv - 1),
-            torch.logical_or: lambda: 1 - torch.relu(1 - lv - rv),
+            torch.Tensor.logical_not: lambda: 1.0 - lv,
+            torch.Tensor.logical_and: lambda: torch.relu(lv + rv - 1),
+            torch.Tensor.logical_or: lambda: 1 - torch.relu(1 - lv - rv),
             torch.eq: lambda: (lv * rv).sum(dim=-1),
             torch.ne: lambda: (1 - lv * rv).sum(dim=-1),
             torch.Tensor.__getitem__: lambda: lv[rv],
             torch.le: lambda: (rv >= lv).to(lv) + (1 - (rv >= lv).to(lv)) * rv,
             torch.ge: lambda: (lv >= rv).to(rv) + (1 - (lv >= rv).to(rv)) * lv,
-            torch.all: lambda: torch.relu(lv.sum(rv) - lv.shape[rv] + 1),
-            torch.any: lambda: 1 - torch.relu(1 - lv.sum(rv))
+            torch.Tensor.all: lambda: AND(lv, rv),
+            torch.Tensor.any: lambda: OR(lv, rv),
+            torch.all: lambda: AND(rv[0], rv[1]),
+            torch.any: lambda: OR(rv[0], rv[1])
         }[function]()
 
 
 class GodelTNormSolver(TNormSolver):
     def gettnorm(self, args, function, probs):
+        def AND(t, dim):
+            return (t.min(dim) if dim is not None else t.min())[0]
+        def OR(t, dim):
+            return (t.max(dim) if dim is not None else t.max())[0]
+        tnorm_dict, lv, rv  = self.base_tnorm(args, function, probs)
         tnorm_dict, lv, rv = self.base_tnorm(args, function, probs)
         return {
             **tnorm_dict,
-            torch.logical_not: lambda: 1.0 - lv,
-            torch.logical_and: lambda: torch.min(lv,rv),
-            torch.logical_or: lambda: torch.max(lv, rv),
+            torch.Tensor.logical_not: lambda: 1.0 - lv,
+            torch.Tensor.logical_and: lambda: torch.min(lv,rv),
+            torch.Tensor.logical_or: lambda: torch.max(lv, rv),
             torch.eq: lambda: (lv * rv).sum(dim=-1),
             torch.ne: lambda: (1 - lv * rv).sum(dim=-1),
             torch.Tensor.__getitem__: lambda: lv[rv],
             torch.le: lambda: 1 - torch.relu(lv - rv),
             torch.ge: lambda: 1 - torch.relu(rv - lv),
-            torch.all: lambda: lv.min(rv)[0],    # getting the min value
-            torch.any: lambda: lv.max(rv)[0]
+            torch.Tensor.all: lambda: AND(lv, rv),  # lv is the tensor, rv is the dim
+            torch.Tensor.any: lambda: OR(lv, rv),
+            torch.all: lambda: AND(rv[0], rv[1]),
+            torch.any: lambda: OR(rv[0], rv[1])
         }[function]()
 
 
