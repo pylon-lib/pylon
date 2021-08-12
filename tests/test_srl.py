@@ -1,5 +1,4 @@
 import sys
-sys.path.append("/space/ahmedk/wtf")
 
 import torch
 import torch.nn.functional as F
