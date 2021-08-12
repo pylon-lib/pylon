@@ -58,8 +58,7 @@ class NLI_Net(torch.nn.Module):
 
 
 def transitivity(ph_batch, hz_batch, pz_batch):
-    # TODO, can't do this:
-    # ENT = LABEL_TO_ID['Entailment']
+    #ee_e = (ph_batch == 0).logical_and(hz_batch == 0) <= (pz_batch == 0)
     ee_e = (ph_batch == 0).logical_and(hz_batch == 0) <= (pz_batch == 0)
     ec_c = (ph_batch == 0).logical_and(hz_batch == 1) <= (pz_batch == 1)
     ne_notc = (ph_batch == 2).logical_and(hz_batch == 0) <= (pz_batch == 1).logical_not()
@@ -75,7 +74,7 @@ def transitivity_lazy(ph_batch, hz_batch, pz_batch):
     ee_e = (ph_batch[:, ENT]).logical_and(hz_batch[:, ENT]) <= (pz_batch[:, ENT])
     ec_c = (ph_batch[:, ENT]).logical_and(hz_batch[:, CON]) <= (pz_batch[:, CON])
     ne_notc = (ph_batch[:, NEU]).logical_and(hz_batch[:, ENT]) <= (pz_batch[:, CON]).logical_not()
-    nc_note = (ph_batch[:, CON]).logical_and(hz_batch[:, NEU]) <= (pz_batch[:, CON]).logical_not()
+    nc_note = (ph_batch[:, NEU]).logical_and(hz_batch[:, CON]) <= (pz_batch[:, ENT]).logical_not()
     # just block Neu and Neu -> Neu and force it to change
     block_safezone = (ph_batch[:, NEU]).logical_and(hz_batch[:, NEU]) <= (pz_batch[:, NEU]).logical_not()
     return ee_e.logical_and(ec_c).logical_and(ne_notc).logical_and(nc_note).logical_and(block_safezone)
@@ -85,12 +84,9 @@ def transitivity_lazy(ph_batch, hz_batch, pz_batch):
 def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
     ee_e = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, ENT]).all()
     ec_c = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, CON]).all()
-    ne_notc = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, ENT]).logical_not(
-    ).logical_or(pz_y_mask[:, CON].logical_not()).all()
-    nc_note = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, CON]).logical_not(
-    ).logical_or(pz_y_mask[:, ENT].logical_not()).all()
-    block_safezone = ph_y_mask[:, NEU].logical_and(
-        hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
+    ne_notc = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, CON].logical_not()).all()
+    nc_note = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, ENT].logical_not()).all()
+    block_safezone = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
     return ee_e and ec_c and ne_notc and nc_note and block_safezone
 
 
