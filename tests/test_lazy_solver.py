@@ -2,7 +2,8 @@ from typing import Tuple
 import pytest
 
 from pytorch_constraints.lazy_tensor import *
-
+from pytorch_constraints.constraint import constraint
+from pytorch_constraints.shaped_lazy_solver import ProductTNormSolver
 
 def rand_tensor(dims, isBool=True):
     if isBool:
@@ -136,3 +137,11 @@ def lazy_tensor_real_tensor_pairs():
 def test_lazy_tensor_to_tensor(lazy_tensor_real_tensor_pairs):
     for (lazy_tensor, tensor, err_msg) in lazy_tensor_real_tensor_pairs:
         assert torch.equal(lazy_tensor.tensor(), tensor), err_msg
+
+def test_lazy_solver_equals():
+    def equality_test(a):
+        return (a[2] == 1)
+    cons = constraint(equality_test, ProductTNormSolver())
+    tensor1 = torch.randn((3, 2))
+    constraint_loss = cons(tensor1)
+    assert True
