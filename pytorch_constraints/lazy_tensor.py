@@ -19,8 +19,8 @@ class AbstractLazyTensor(ABC):
     def logical_xor(self, arg):
         return new_lazy_tensor(torch.Tensor.logical_xor, [self, arg])
 
-    def sum(self, dim=None):
-        return new_lazy_tensor(torch.Tensor.sum, (self, dim))
+    def sum(self, dim):
+        return new_lazy_tensor(torch.sum, (self, dim))
 
     def softmax(self, dim):
         return new_lazy_tensor(torch.Tensor.softmax, (self, dim))
@@ -107,7 +107,7 @@ class AbstractLazyTensor(ABC):
         return new_lazy_tensor(torch.Tensor.logsumexp, [self, arg])
 
     def masked_select(self, arg):
-        return new_lazy_tensor(torch.Tensor.masked_select, [self, arg])        
+        return new_lazy_tensor(torch.Tensor.masked_select, [self, arg])
 
     def float(self):
         return new_lazy_tensor(torch.Tensor.float, [self])

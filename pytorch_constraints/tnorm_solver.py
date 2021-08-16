@@ -49,7 +49,6 @@ class TNormTreeNodeVisitor(TreeNodeVisitor):
             cond = node.right if r_cond else node.left
             const = node.right if r_const else node.left
             return self.visit(Or(Not(cond.expr), IsEq(cond.arg, const)), probs)
-
         raise NotImplementedError
 
     def visit_IdentifierRef(self, node, probs):
