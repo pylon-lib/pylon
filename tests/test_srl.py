@@ -1,5 +1,4 @@
 import sys
-sys.path.append("/space/ahmedk/wtf")
 
 import torch
 import torch.nn.functional as F
@@ -9,14 +8,19 @@ from pytorch_constraints.constraint import constraint
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import WeightedSamplingSolver
 #from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
+from pytorch_constraints.shaped_lazy_solver import TNormSolver as LazyTNormSolver
+from pytorch_constraints.shaped_lazy_solver import ProductTNormSolver as LazyProductTNormSolver
+from pytorch_constraints.shaped_lazy_solver import GodelTNormSolver as LazyGodelTNormSolver
+from pytorch_constraints.shaped_lazy_solver import LukasiewiczTNormSolver as LazyLukasiewiczTNormSolver
 
 LABELS = ['O', 'B-A0', 'I-A0', 'B-A1', 'I-A1', 'B-A2', 'B-A3', 'B-V']
 LABEL_TO_ID = {p: i for i, p in enumerate(LABELS)}
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    # Luka is not here since we will use a constraint with a large conjunction
-    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
+    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), \
+        WeightedSamplingSolver(num_samples), \
+        LazyProductTNormSolver(), LazyGodelTNormSolver(), LazyLukasiewiczTNormSolver()]
 
 
 class SRL_NET(torch.nn.Module):
@@ -57,11 +61,37 @@ def unique_role(y, y_ext):
     b_a1 = (y == 3) <= (y_ext == 3).logical_not().all(2)
     b_a2 = (y == 5) <= (y_ext == 5).logical_not().all(2)
     b_a3 = (y == 6) <= (y_ext == 6).logical_not().all(2)
-    return b_a0.logical_and(b_a1).logical_and(b_a2).logical_and(b_a3)
+    return b_a0.logical_and(b_a1).logical_and(b_a2).logical_and(b_a3).all(1)
 
 
 def unique_role_sampling(y, y_ext):
     return unique_role(y, y_ext)
+
+def unique_role_lazy(y):
+    from pytorch_constraints import lazy_torch as torch
+    shape = y.size()
+    # different from non-lazy tensor versions, here we can create the y_ext inside of the constraint function
+    # y of shape (batch_l, seq_l, num_label)
+    #   for each token with a core role label, we want it to imply other tokens not to have the same core label
+    #   we will do this efficiently using y_ext which maps each token to all other tokens (so that we can block the same core label on them)
+    # y_ext of shape (batch_l, seq_l, seq_l, num_label), 
+    #   created by y.view(batch_l, 1, seq_l, num_label) and then repeat at the dim=1 for seq_l times
+    #   then mask out the diagonal of dim 1 and 2 (i.e. force them to have 0 probabilities)
+    #       so that the token i with a core role label does not negates itself
+    # note that y is already probabilities here (not log scale)
+    #   so force them to be large negative at log scale and then exp
+    y_ext = y + 1e-8
+    y_ext = y_ext.unsqueeze(1).tile(1, shape[1], 1, 1).log()
+    y_ext = y_ext + torch.eye(shape[1]).unsqueeze(0).unsqueeze(3).tile(shape[0], 1, 1, shape[2]) * -1e6
+    y_ext = y_ext.exp()
+
+    #y: batch_size, seq_l, num_label
+    #y_ext: batch_size, seq_l, seq_l, num_label
+    b_a0 = y[:, :, 1] <= y_ext[:, :, :, 1].logical_not().all(2)    # can't do -1, needs ast.USub; and can't do all() since IsEq doesn't squeeze
+    b_a1 = y[:, :, 3] <= y_ext[:, :, :, 3].logical_not().all(2)
+    b_a2 = y[:, :, 5] <= y_ext[:, :, :, 5].logical_not().all(2)
+    b_a3 = (y[:, :, 6]) <= y_ext[:, :, :, 6].logical_not().all(2)
+    return b_a0.logical_and(b_a1).logical_and(b_a2).logical_and(b_a3).all(1)
 
 
 # DEPRECATED
@@ -109,11 +139,13 @@ def train(data, constraint):
 
         yloss = F.cross_entropy(logits.view(-1, num_label), y.view(-1))
 
-        # make logit tensor ready for the constraint func
-        logits_ext = logits.unsqueeze(2).expand(batch_l, seq_l, seq_l, num_label)
-        diag_mask = torch.eye(seq_l).view(1, seq_l, seq_l, 1).expand_as(logits_ext)
-        logits_ext = logits_ext + diag_mask * -1e6
-        closs = constraint(logits, logits_ext)
+        if constraint.cond is unique_role_lazy:
+            closs = constraint(logits)
+        else:
+            logits_ext = logits.unsqueeze(2).expand(batch_l, seq_l, seq_l, num_label)
+            diag_mask = torch.eye(seq_l).view(1, seq_l, seq_l, 1).expand_as(logits_ext)
+            logits_ext = logits_ext + diag_mask * -1e6
+            closs = constraint(logits, logits_ext)
 
         loss = 0.5 * closs + 0.95 * yloss
 
@@ -122,20 +154,24 @@ def train(data, constraint):
 
     return srl
 
-@pytest.mark.skip(reason="Does not conform to expected output shape of constraint function")
+#@pytest.mark.skip(reason="Does not conform to expected output shape of constraint function")
 def test_srl():
     tokens, y = get_data()
 
     for solver in get_solvers(num_samples=50):
 
-        constr_func = unique_role_sampling if isinstance(solver, WeightedSamplingSolver) else unique_role
+        if issubclass(solver.__class__, LazyTNormSolver):
+            constr_func = unique_role_lazy
+        elif isinstance(solver, WeightedSamplingSolver):
+            constr_func = unique_role_sampling
+        else:
+            constr_func = unique_role
 
         cons = constraint(constr_func, solver)
         srl = train([tokens, y], cons)
 
         y_ = torch.softmax(srl(tokens).view(-1, len(LABEL_TO_ID)), dim=-1)
         y_mask = (y_ == y_.max(-1)[0].unsqueeze(-1))
-        print(y_mask)
         
         unique_role_check(y_mask)
 
@@ -143,7 +179,7 @@ def test_srl():
 def get_data():
     toks = torch.tensor([[32, 1973, 2272,   15,    3,    10,    0,    5,    0,  389]])
 
-    y = torch.tensor([[0, 1, 2, 2, 0, 7, 0, 0, 3, 4]])
+    y = torch.tensor([[0, 1, 2, 2, 0, 7, 0, 1, 3, 1]])
 
     return toks, y
 

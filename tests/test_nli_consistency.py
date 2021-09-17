@@ -5,6 +5,10 @@ from pytorch_constraints.constraint import constraint
 from pytorch_constraints.tnorm_solver import *
 from pytorch_constraints.sampling_solver import WeightedSamplingSolver
 #from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
+from pytorch_constraints.shaped_lazy_solver import TNormSolver as LazyTNormSolver
+from pytorch_constraints.shaped_lazy_solver import ProductTNormSolver as LazyProductTNormSolver
+from pytorch_constraints.shaped_lazy_solver import GodelTNormSolver as LazyGodelTNormSolver
+from pytorch_constraints.shaped_lazy_solver import LukasiewiczTNormSolver as LazyLukasiewiczTNormSolver
 
 LABEL_TO_ID = {'Entailment': 0, 'Contradiction': 1, 'Neutral': 2}
 ENT = LABEL_TO_ID['Entailment']
@@ -14,7 +18,9 @@ NEU = LABEL_TO_ID['Neutral']
 
 # TODO, add more solvers
 def get_solvers(num_samples):
-    return [ProductTNormLogicSolver(), LukasiewiczTNormLogicSolver(), GodelTNormLogicSolver(), WeightedSamplingSolver(num_samples)]
+    return [ProductTNormLogicSolver(), GodelTNormLogicSolver(), LukasiewiczTNormLogicSolver(), \
+        WeightedSamplingSolver(num_samples), \
+        LazyProductTNormSolver(), LazyGodelTNormSolver(), LazyLukasiewiczTNormSolver()]
 
 
 class NLI_Net(torch.nn.Module):
@@ -52,8 +58,7 @@ class NLI_Net(torch.nn.Module):
 
 
 def transitivity(ph_batch, hz_batch, pz_batch):
-    # TODO, can't do this:
-    # ENT = LABEL_TO_ID['Entailment']
+    #ee_e = (ph_batch == 0).logical_and(hz_batch == 0) <= (pz_batch == 0)
     ee_e = (ph_batch == 0).logical_and(hz_batch == 0) <= (pz_batch == 0)
     ec_c = (ph_batch == 0).logical_and(hz_batch == 1) <= (pz_batch == 1)
     ne_notc = (ph_batch == 2).logical_and(hz_batch == 0) <= (pz_batch == 1).logical_not()
@@ -64,18 +69,24 @@ def transitivity(ph_batch, hz_batch, pz_batch):
 
 def transitivity_sampling(ph_batch, hz_batch, pz_batch):
     return transitivity(ph_batch, hz_batch, pz_batch)
+
+def transitivity_lazy(ph_batch, hz_batch, pz_batch):
+    ee_e = (ph_batch[:, ENT]).logical_and(hz_batch[:, ENT]) <= (pz_batch[:, ENT])
+    ec_c = (ph_batch[:, ENT]).logical_and(hz_batch[:, CON]) <= (pz_batch[:, CON])
+    ne_notc = (ph_batch[:, NEU]).logical_and(hz_batch[:, ENT]) <= (pz_batch[:, CON]).logical_not()
+    nc_note = (ph_batch[:, NEU]).logical_and(hz_batch[:, CON]) <= (pz_batch[:, ENT]).logical_not()
+    # just block Neu and Neu -> Neu and force it to change
+    block_safezone = (ph_batch[:, NEU]).logical_and(hz_batch[:, NEU]) <= (pz_batch[:, NEU]).logical_not()
+    return ee_e.logical_and(ec_c).logical_and(ne_notc).logical_and(nc_note).logical_and(block_safezone)
     
 
 # inputs are binary masks where 1 is the spiked label and 0's are the rest
 def transitivity_check(ph_y_mask, hz_y_mask, pz_y_mask):
     ee_e = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, ENT]).all()
     ec_c = ph_y_mask[:, ENT].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, CON]).all()
-    ne_notc = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, ENT]).logical_not(
-    ).logical_or(pz_y_mask[:, CON].logical_not()).all()
-    nc_note = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, CON]).logical_not(
-    ).logical_or(pz_y_mask[:, ENT].logical_not()).all()
-    block_safezone = ph_y_mask[:, NEU].logical_and(
-        hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
+    ne_notc = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, ENT]).logical_not().logical_or(pz_y_mask[:, CON].logical_not()).all()
+    nc_note = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, CON]).logical_not().logical_or(pz_y_mask[:, ENT].logical_not()).all()
+    block_safezone = ph_y_mask[:, NEU].logical_and(hz_y_mask[:, NEU]).logical_not().logical_or(pz_y_mask[:, NEU].logical_not()).all()
     return ee_e and ec_c and ne_notc and nc_note and block_safezone
 
 
@@ -109,9 +120,14 @@ def test_nli():
 
     for solver in get_solvers(num_samples=50):
 
-        trans_func = transitivity_sampling if isinstance(solver, WeightedSamplingSolver) else transitivity
+        if issubclass(solver.__class__, LazyTNormSolver):
+            constr_func = transitivity_lazy
+        elif isinstance(solver, WeightedSamplingSolver):
+            constr_func = transitivity_sampling
+        else:
+            constr_func = transitivity
 
-        cons = constraint(trans_func, solver)
+        cons = constraint(constr_func, solver)
         nli = train([ph_tokens, hz_tokens, pz_tokens, ph_y], cons)
 
         ph_y_ = torch.softmax(nli(ph_tokens).view(-1, len(LABEL_TO_ID)), dim=-1)
