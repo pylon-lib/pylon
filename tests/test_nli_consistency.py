@@ -1,14 +1,14 @@
 import torch
 import torch.nn.functional as F
 
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.tnorm_solver import *
-from pytorch_constraints.sampling_solver import WeightedSamplingSolver
-#from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
-from pytorch_constraints.shaped_lazy_solver import TNormSolver as LazyTNormSolver
-from pytorch_constraints.shaped_lazy_solver import ProductTNormSolver as LazyProductTNormSolver
-from pytorch_constraints.shaped_lazy_solver import GodelTNormSolver as LazyGodelTNormSolver
-from pytorch_constraints.shaped_lazy_solver import LukasiewiczTNormSolver as LazyLukasiewiczTNormSolver
+from pylon.constraint import constraint
+from pylon.tnorm_solver import *
+from pylon.sampling_solver import WeightedSamplingSolver
+#from pylon.circuit_solver import SemanticLossCircuitSolver
+from pylon.shaped_lazy_solver import TNormSolver as LazyTNormSolver
+from pylon.shaped_lazy_solver import ProductTNormSolver as LazyProductTNormSolver
+from pylon.shaped_lazy_solver import GodelTNormSolver as LazyGodelTNormSolver
+from pylon.shaped_lazy_solver import LukasiewiczTNormSolver as LazyLukasiewiczTNormSolver
 
 LABEL_TO_ID = {'Entailment': 0, 'Contradiction': 1, 'Neutral': 2}
 ENT = LABEL_TO_ID['Entailment']

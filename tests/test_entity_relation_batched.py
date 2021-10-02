@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.sampling_solver import *
+from pylon.constraint import constraint
+from pylon.sampling_solver import *
 
 ENTITY_TO_ID = {"O": 0, "Loc": 1, "Org": 2, "Peop": 3, "Other": 4}
 REL_TO_ID = {"*": 0, "Work_For_arg1": 1, "Kill_arg1": 2, "OrgBased_In_arg1": 3, "Live_In_arg1": 4,

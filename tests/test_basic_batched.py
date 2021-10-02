@@ -1,8 +1,8 @@
-from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
-from pytorch_constraints.tnorm_solver import *
-from pytorch_constraints.sampling_solver import *
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.brute_force_solver import *
+from pylon.circuit_solver import SemanticLossCircuitSolver
+from pylon.tnorm_solver import *
+from pylon.sampling_solver import *
+from pylon.constraint import constraint
+from pylon.brute_force_solver import *
 import torch.nn.functional as F
 import torch
 import pytest

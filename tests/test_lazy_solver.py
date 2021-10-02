@@ -1,7 +1,7 @@
 from typing import Tuple
 import pytest
 
-from pytorch_constraints.lazy_tensor import *
+from pylon.lazy_tensor import *
 
 
 def rand_tensor(dims, isBool=True):

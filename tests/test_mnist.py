@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.tnorm_solver import *
-from pytorch_constraints.sampling_solver import WeightedSamplingSolver
-from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
+from pylon.constraint import constraint
+from pylon.tnorm_solver import *
+from pylon.sampling_solver import WeightedSamplingSolver
+from pylon.circuit_solver import SemanticLossCircuitSolver
 
 
 def get_solvers(num_samples):

@@ -2,8 +2,8 @@ import pytest
 import ast
 import inspect
 
-from pytorch_constraints.ast_visitor import *
-from pytorch_constraints.circuit_solver import SddVisitor
+from pylon.ast_visitor import *
+from pylon.circuit_solver import SddVisitor
 from pysdd.sdd import SddManager, Vtree, WmcManager
 
 

@@ -1,5 +1,5 @@
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.ilp_solver import ILPSolver
+from pylon.constraint import constraint
+from pylon.ilp_solver import ILPSolver
 import pytest
 import torch
 import sys

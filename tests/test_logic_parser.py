@@ -2,7 +2,7 @@ import pytest
 import ast
 import inspect
 
-from pytorch_constraints.ast_visitor import *
+from pylon.ast_visitor import *
 
 
 def parse_object(obj):

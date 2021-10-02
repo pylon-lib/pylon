@@ -4,14 +4,14 @@ import torch
 import torch.nn.functional as F
 
 import pytest
-from pytorch_constraints.constraint import constraint
-from pytorch_constraints.tnorm_solver import *
-from pytorch_constraints.sampling_solver import WeightedSamplingSolver
-#from pytorch_constraints.circuit_solver import SemanticLossCircuitSolver
-from pytorch_constraints.shaped_lazy_solver import TNormSolver as LazyTNormSolver
-from pytorch_constraints.shaped_lazy_solver import ProductTNormSolver as LazyProductTNormSolver
-from pytorch_constraints.shaped_lazy_solver import GodelTNormSolver as LazyGodelTNormSolver
-from pytorch_constraints.shaped_lazy_solver import LukasiewiczTNormSolver as LazyLukasiewiczTNormSolver
+from pylon.constraint import constraint
+from pylon.tnorm_solver import *
+from pylon.sampling_solver import WeightedSamplingSolver
+#from pylon.circuit_solver import SemanticLossCircuitSolver
+from pylon.shaped_lazy_solver import TNormSolver as LazyTNormSolver
+from pylon.shaped_lazy_solver import ProductTNormSolver as LazyProductTNormSolver
+from pylon.shaped_lazy_solver import GodelTNormSolver as LazyGodelTNormSolver
+from pylon.shaped_lazy_solver import LukasiewiczTNormSolver as LazyLukasiewiczTNormSolver
 
 LABELS = ['O', 'B-A0', 'I-A0', 'B-A1', 'I-A1', 'B-A2', 'B-A3', 'B-V']
 LABEL_TO_ID = {p: i for i, p in enumerate(LABELS)}
@@ -68,7 +68,7 @@ def unique_role_sampling(y, y_ext):
     return unique_role(y, y_ext)
 
 def unique_role_lazy(y):
-    from pytorch_constraints import lazy_torch as torch
+    from pylon import lazy_torch as torch
     shape = y.size()
     # different from non-lazy tensor versions, here we can create the y_ext inside of the constraint function
     # y of shape (batch_l, seq_l, num_label)
