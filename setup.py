@@ -19,11 +19,12 @@ URL = 'https://github.com/pylon-lib/pylon'
 EMAIL = 'ahmedk@cs.ucla.edu'
 AUTHOR = 'Kareem Ahmed, Tao Li, Thy Ton, Quan Gio, Kai-Wei Chang, Parisa Kordjamshidi, Vivek Srikumar, Guy Van den Broeck, Sameer Singh'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-     'torch'
+    'astor'
+#     'torch'
 ]
 
 # What packages are optional?
