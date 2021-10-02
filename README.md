@@ -51,17 +51,23 @@ class Net(torch.nn.Module):
 We define our constraint funciton
 ```
 from pylon.constraint import constraint
-from pylon.brute_force_solver import SatisfactionBruteForceSolver()
+from pylon.tnorm_solver import ProductTNormLogicSolver
 def xor(y):
     return y[0] != y[1] and y[1] != y[2]
     
-xor_cons = constraint(xor, SatisfactionBruteForceSolver())
+xor_cons = constraint(xor, ProductTNormLogicSolver())
 ```
 And proceed to our training loop
 ```
+# Create network and optimizer
 net = Net()
 opt = torch.optim.SGD(net.parameters(), lr=0.1)
 
+# Input and label
+x = torch.tensor([1.])
+y = torch.tensor([0, 0, 1])
+
+# training loop
 y0, y1, y2 = [], [], []
 for i in range(500):
     opt.zero_grad()
