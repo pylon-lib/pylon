@@ -19,7 +19,7 @@ URL = 'https://github.com/pylon-lib/pylon'
 EMAIL = 'ahmedk@cs.ucla.edu'
 AUTHOR = 'Kareem Ahmed, Tao Li, Thy Ton, Quan Gio, Kai-Wei Chang, Parisa Kordjamshidi, Vivek Srikumar, Guy Van den Broeck, Sameer Singh'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -103,8 +103,11 @@ setup(
     author=AUTHOR,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
-    url=URL,
+    url='https://pylon-lib.github.io',
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+    project_urls={
+        'Pylon source': 'https://github.com/pylon-lib/pylon'
+    },
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
 
