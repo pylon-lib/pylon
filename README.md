@@ -51,11 +51,15 @@ class Net(torch.nn.Module):
 We define our constraint funciton
 ```
 from pylon.constraint import constraint
-from pylon.tnorm_solver import ProductTNormLogicSolver
+from pylon.brute_force_solver import SatisfactionBruteForceSolver
+
+# Our constraint function accepts a decoding tensor of
+# shape (batch_size, ...) and is expected to return
+# a tensor fo shape (batch_size, )
 def xor(y):
-    return y[0] != y[1] and y[1] != y[2]
+    return y[:, 0] != y[:, 1] and y[:, 1] != y[:, 2]
     
-xor_cons = constraint(xor, ProductTNormLogicSolver())
+xor_cons = constraint(xor, SatisfactionBruteForceSolver())
 ```
 And proceed to our training loop
 ```
@@ -73,14 +77,17 @@ for i in range(500):
     opt.zero_grad()
     y_logit = net(x)
     loss = F.cross_entropy(y_logit[2:], y[2:])
-    loss += xor_cons(y_logit)
+    loss += xor_cons(y_logit.unsqueeze(0)) #Pylon expect tensors of shape (batch_size, ...)
     loss.backward()
     y_prob = torch.softmax(y_logit, dim=-1)
     y0.append(y_prob[0,1].data); y1.append(y_prob[1,1].data); y2.append(y_prob[2,1].data)
     opt.step()
 
 import matplotlib.pyplot as plt
-plt.plot(y0, y1, y2)
+plt.plot(y0, label='y0')
+plt.plot(y1, label='y1')
+plt.plot(y2, label='y2')
+plt.legend()
 ```
 ![Image](https://user-images.githubusercontent.com/2989475/135705681-ce62667f-cdf1-4b8a-9efc-db0fc9cefb2e.png)
 
