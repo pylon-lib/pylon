@@ -21,7 +21,7 @@ class BruteForceSolver(Solver):
         # the classifier corresponding to log_probs[i]
         all_decodings = []
         for i in range(llgprbs):
-            num_tensors = torch.prod(torch.tensor(shapes[i][1:-1]))
+            num_tensors = torch.prod(torch.tensor(shapes[i][1:-1]), dtype=torch.long)
             decodings = num_tensors * [torch.arange(shapes[i][-1])]
             decodings = torch.cartesian_prod(*decodings)
             decodings = decodings.view(-1, *shapes[i][1:-1])
@@ -46,7 +46,6 @@ class BruteForceSolver(Solver):
 
         # Get all possible decodings
         samples = self.all_samples(log_probs)
-
         indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) if kwargs == {}
             else torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples ])
 
