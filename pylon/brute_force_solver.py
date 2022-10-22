@@ -47,7 +47,7 @@ class BruteForceSolver(Solver):
         # Get all possible decodings
         samples = self.all_samples(log_probs)
         indices = torch.stack([torch.tensor(data=self.cond(*sample), dtype=torch.bool) if kwargs == {}
-            else torch.tensor(data=self.cond(*sample), dtype=torch.bool) for sample in samples ])
+            else torch.tensor(data=self.cond(*sample, **kwargs), dtype=torch.bool) for sample in samples ])
 
         losses = torch.stack([decoding_loss(sample, log_probs) for sample in samples])
 
